@@ -5,12 +5,9 @@
 	let { data } = $props();
 
 	let displayName = $state(data.inviteData?.displayName ?? '');
-	let phone = $state(data.inviteData?.phone ?? '');
-	let step = $state<'form' | 'passkey' | 'done'>(data.error ? 'form' : 'form');
+	let step = $state<'form' | 'passkey'>('form');
 	let loading = $state(false);
 	let error = $state(data.error ?? '');
-	let accessToken = $state('');
-	let refreshToken = $state('');
 
 	async function register() {
 		loading = true;
@@ -19,17 +16,14 @@
 			const res = await fetch(`/api/invite/${data.token}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ displayName, phone })
+				body: JSON.stringify({ displayName })
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error);
 
-			accessToken = result.accessToken;
-			refreshToken = result.refreshToken;
-
 			await data.supabase.auth.setSession({
-				access_token: accessToken,
-				refresh_token: refreshToken
+				access_token: result.accessToken,
+				refresh_token: result.refreshToken
 			});
 
 			const passkeyAvailable =
@@ -54,19 +48,14 @@
 		try {
 			const optRes = await fetch('/api/auth/passkey/register', { method: 'GET' });
 			const opts = await optRes.json();
-
 			const credential = await startRegistration({ optionsJSON: opts });
-
 			const verifyRes = await fetch('/api/auth/passkey/register', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(credential)
 			});
 			const result = await verifyRes.json();
-
-			if (result.success) {
-				localStorage.setItem('passkey_registered', '1');
-			}
+			if (result.success) localStorage.setItem('passkey_registered', '1');
 			goto('/dashboard');
 		} catch (e) {
 			error = 'パスキー登録に失敗しました';
@@ -96,19 +85,14 @@
 			<input type="text" bind:value={displayName} placeholder="山田 太郎" />
 		</label>
 
-		<label>
-			電話番号
-			<input type="tel" bind:value={phone} placeholder="090-0000-0000" />
-		</label>
-
-		<button class="btn-primary" onclick={register} disabled={loading || !displayName || !phone}>
+		<button class="btn-primary" onclick={register} disabled={loading || !displayName}>
 			{loading ? '登録中...' : '登録する'}
 		</button>
 
 	{:else if step === 'passkey'}
 		<div class="passkey-prompt">
 			<h1>パスキーを設定</h1>
-			<p>Face ID / Touch IDを使ってこの端末からログインできるようになります。</p>
+			<p>Face ID / Touch IDを使ってログインできるようになります。</p>
 
 			{#if error}
 				<p class="error">{error}</p>
@@ -132,18 +116,8 @@
 		gap: 16px;
 	}
 	.subtitle { color: #666; font-size: 14px; margin-top: -8px; }
-	label {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		font-size: 14px;
-	}
-	input {
-		padding: 10px;
-		border: 1px solid #ccc;
-		border-radius: 6px;
-		font-size: 16px;
-	}
+	label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+	input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
 	.btn-primary {
 		padding: 12px;
 		background: #0070f3;
@@ -154,13 +128,7 @@
 		cursor: pointer;
 	}
 	.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-	.btn-link {
-		background: none;
-		border: none;
-		color: #0070f3;
-		cursor: pointer;
-		font-size: 14px;
-	}
+	.btn-link { background: none; border: none; color: #0070f3; cursor: pointer; font-size: 14px; }
 	.error { color: #e00; font-size: 14px; }
 	.error-page { text-align: center; padding: 40px; }
 	.passkey-prompt { display: flex; flex-direction: column; gap: 16px; }
