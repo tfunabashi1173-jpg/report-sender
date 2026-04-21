@@ -8,6 +8,8 @@ declare global {
 		}
 		interface PageData {
 			session: Session | null;
+			supabaseUrl: string;
+			supabaseAnonKey: string;
 		}
 		interface Platform {
 			env: {
