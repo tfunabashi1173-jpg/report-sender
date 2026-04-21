@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const RP_NAME = '報告メール送信システム';
 export const RP_ID =
-	typeof window !== 'undefined' ? window.location.hostname : 'report-sender.t-funabashi1173.workers.dev';
+	typeof window !== 'undefined' ? window.location.hostname : 'report-sender.donexus.workers.dev';
 
 export async function getPasskeyCredentials(supabase: SupabaseClient, userId: string) {
 	const { data, error } = await supabase
