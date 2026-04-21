@@ -6,5 +6,9 @@
 	"assets": {
 		"directory": ".svelte-kit/cloudflare",
 		"binding": "ASSETS"
+	},
+	"vars": {
+		"PUBLIC_SUPABASE_URL": "https://ywujfwzcxaehfqlfkskf.supabase.co",
+		"PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3dWpmd3pjeGFlaGZxbGZrc2tmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxNTAxMzgsImV4cCI6MjA3OTcyNjEzOH0.B4BgOlv6RV4bnSFcVglQxgV_IRvCYihk1wGM2_VAcXc"
 	}
 }
