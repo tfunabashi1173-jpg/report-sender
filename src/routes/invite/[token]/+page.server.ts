@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const { data, error } = await locals.supabase
-		.schema('report_sender')
+		
 		.from('invites')
 		.select('display_name, phone, expires_at, used_at')
 		.eq('token', params.token)

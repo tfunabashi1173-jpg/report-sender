@@ -4,7 +4,7 @@ import { createAdminClient } from '$lib/auth/admin';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	const { data, error } = await locals.supabase
-		.schema('report_sender')
+		
 		.from('invites')
 		.select('id, display_name, phone, expires_at, used_at')
 		.eq('token', params.token)
@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ params, request, locals, platform }
 	const serviceRoleKey = platform?.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
 
 	const { data: invite, error: inviteError } = await locals.supabase
-		.schema('report_sender')
+		
 		.from('invites')
 		.select('id, expires_at, used_at')
 		.eq('token', params.token)
@@ -60,13 +60,13 @@ export const POST: RequestHandler = async ({ params, request, locals, platform }
 
 	// profiles に登録
 	await admin
-		.schema('report_sender')
+		
 		.from('profiles')
 		.upsert({ id: userId, phone: normalized, display_name: displayName, role: 'member' });
 
 	// 招待を使用済みにする
 	await admin
-		.schema('report_sender')
+		
 		.from('invites')
 		.update({ used_at: new Date().toISOString() })
 		.eq('token', params.token);

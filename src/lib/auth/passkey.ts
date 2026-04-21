@@ -6,7 +6,7 @@ export const RP_ID =
 
 export async function getPasskeyCredentials(supabase: SupabaseClient, userId: string) {
 	const { data, error } = await supabase
-		.schema('report_sender')
+		
 		.from('passkey_credentials')
 		.select('*')
 		.eq('user_id', userId);
@@ -23,7 +23,7 @@ export async function savePasskeyCredential(
 	deviceName?: string
 ) {
 	const { error } = await supabase
-		.schema('report_sender')
+		
 		.from('passkey_credentials')
 		.insert({ user_id: userId, credential_id: credentialId, public_key: publicKey, counter, device_name: deviceName });
 	if (error) throw error;
@@ -35,7 +35,7 @@ export async function updatePasskeyCounter(
 	counter: number
 ) {
 	const { error } = await supabase
-		.schema('report_sender')
+		
 		.from('passkey_credentials')
 		.update({ counter, last_used_at: new Date().toISOString() })
 		.eq('credential_id', credentialId);

@@ -8,7 +8,7 @@ export const POST: RequestHandler = async ({ request, locals, platform, url }) =
 
 	// 管理者チェック
 	const { data: profile } = await locals.supabase
-		.schema('report_sender')
+		
 		.from('profiles')
 		.select('role')
 		.eq('id', user.id)
@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ request, locals, platform, url }) =
 
 	const token = crypto.randomUUID();
 	const { error } = await admin
-		.schema('report_sender')
+		
 		.from('invites')
 		.insert({
 			token,

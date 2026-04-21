@@ -1,14 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import type { Handle } from '@sveltejs/kit';
 
-const DB_SCHEMA = 'report_sender';
-
 export const handle: Handle = async ({ event, resolve }) => {
 	const supabaseUrl = event.platform?.env.PUBLIC_SUPABASE_URL ?? '';
 	const supabaseKey = event.platform?.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 	event.locals.supabase = createServerClient(supabaseUrl, supabaseKey, {
-		db: { schema: DB_SCHEMA },
 		cookies: {
 			getAll: () => event.cookies.getAll(),
 			setAll: (cookiesToSet) => {
