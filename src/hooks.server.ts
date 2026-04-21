@@ -6,6 +6,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const supabaseKey = event.platform?.env.PUBLIC_SUPABASE_ANON_KEY ?? import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
 	event.locals.supabase = createServerClient(supabaseUrl, supabaseKey, {
+		db: { schema: 'report_sender' },
 		cookies: {
 			getAll: () => event.cookies.getAll(),
 			setAll: (cookiesToSet) => {
