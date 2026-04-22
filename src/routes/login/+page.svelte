@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { startAuthentication } from '@simplewebauthn/browser';
+	import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
@@ -56,6 +56,52 @@
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? '初期管理者の作成に失敗しました');
+			await registerCurrentUserPasskey();
+			goto('/dashboard');
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			setupLoading = false;
+		}
+	}
+
+	async function registerCurrentUserPasskey() {
+		if (
+			!window.PublicKeyCredential ||
+			!(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())
+		) {
+			throw new Error('この端末ではパスキーを作成できません');
+		}
+
+		const optRes = await fetch('/api/auth/passkey/register', { method: 'GET' });
+		const opts = await optRes.json();
+		if (!optRes.ok) throw new Error(opts.error ?? 'パスキー登録開始に失敗しました');
+
+		const credential = await startRegistration({ optionsJSON: opts });
+		const verifyRes = await fetch('/api/auth/passkey/register', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(credential)
+		});
+		const verifyResult = await verifyRes.json();
+		if (!verifyRes.ok || !verifyResult.success) {
+			throw new Error(verifyResult.error ?? 'パスキー登録に失敗しました');
+		}
+	}
+
+	async function loginAsAdminWithKey() {
+		setupLoading = true;
+		error = '';
+		try {
+			const res = await fetch('/api/bootstrap/admin-login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					bootstrapKey: setupKey
+				})
+			});
+			const result = await res.json();
+			if (!res.ok) throw new Error(result.error ?? '管理者ログインに失敗しました');
 			goto('/dashboard');
 		} catch (e: any) {
 			error = e.message;
@@ -91,7 +137,10 @@
 			<input type="password" bind:value={setupKey} placeholder="環境変数で設定した場合のみ入力" />
 		</label>
 		<button class="btn-secondary" onclick={createFirstAdmin} disabled={setupLoading}>
-			{setupLoading ? '作成中...' : '初期管理者を作成'}
+			{setupLoading ? '作成中...' : '初期管理者を作成してパスキー登録'}
+		</button>
+		<button class="btn-secondary" onclick={loginAsAdminWithKey} disabled={setupLoading || !setupKey}>
+			{setupLoading ? '処理中...' : '管理者キーでログイン'}
 		</button>
 	</section>
 </main>
