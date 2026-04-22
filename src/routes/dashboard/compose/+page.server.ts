@@ -127,7 +127,7 @@ async function collectAttachments(form: FormData) {
 	const files = form.getAll('attachments').filter((value): value is File => value instanceof File && value.size > 0);
 	const attachments: MailAttachment[] = [];
 	for (const file of files) {
-		if (!file.type.startsWith('image/')) continue;
+		if (!isImageAttachment(file)) continue;
 		attachments.push({
 			fileName: file.name,
 			contentType: file.type || 'application/octet-stream',
@@ -135,6 +135,11 @@ async function collectAttachments(form: FormData) {
 		});
 	}
 	return attachments;
+}
+
+function isImageAttachment(file: File) {
+	if (file.type.startsWith('image/')) return true;
+	return /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(file.name);
 }
 
 async function saveReport(

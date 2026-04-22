@@ -4,8 +4,7 @@
 	let appliedTemplateId = $state('');
 	let selectedFloor = $state('');
 	let selectedPercent = $state('');
-	let selectedToListIds = $state<string[]>([]);
-	let selectedCcListIds = $state<string[]>([]);
+	let selectedMailingListId = $state('');
 	let selectedToContactIds = $state<string[]>([]);
 	let selectedCcContactIds = $state<string[]>([]);
 	let openToOrganizations = $state<string[]>([]);
@@ -25,6 +24,7 @@
 	];
 	const imageMaxSide = 1600;
 	const imageQuality = 0.72;
+	const imageAccept = 'image/*,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif';
 	const contactGroups = $derived(groupContactsByOrganization(data.contacts));
 
 	function groupContactsByOrganization(
@@ -78,8 +78,7 @@
 		appliedTemplateId = template.id;
 		subject = applyTags(template.subject);
 		body = applyTags(template.body);
-		selectedToListIds = [...template.toListIds];
-		selectedCcListIds = [...template.ccListIds];
+		selectedMailingListId = template.toListIds[0] ?? template.ccListIds[0] ?? '';
 		selectedToContactIds = [];
 		selectedCcContactIds = [];
 	}
@@ -100,6 +99,10 @@
 	function replaceExtension(name: string) {
 		const base = name.replace(/\.[^.]+$/, '');
 		return `${base || 'image'}.jpg`;
+	}
+
+	function isCompressibleImage(file: File) {
+		return file.type.startsWith('image/') && file.type !== 'image/gif' && file.type !== 'image/svg+xml';
 	}
 
 	function selectedTemplateText() {
@@ -163,7 +166,7 @@
 	}
 
 	async function compressImage(file: File) {
-		if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
+		if (!isCompressibleImage(file)) return file;
 
 		const image = await decodeImage(file);
 		const scale = Math.min(1, imageMaxSide / Math.max(image.width, image.height));
@@ -279,14 +282,19 @@
 		</section>
 
 		<section class="card">
-			<h2>メイン宛先</h2>
+			<h2>宛先</h2>
+			<label>
+				メーリングリスト
+				<select name="toListIds" bind:value={selectedMailingListId}>
+					<option value="">選択しない</option>
+					{#each data.lists as list}
+						<option value={list.id}>{list.name}</option>
+					{/each}
+				</select>
+				<small>リスト内のTO/CC設定を使って送信します。</small>
+			</label>
+			<h2 class="recipient-title">メイン宛先</h2>
 			<div class="checks">
-				{#each data.lists as list}
-					<label class="check">
-						<input bind:group={selectedToListIds} type="checkbox" name="toListIds" value={list.id} />
-						<span>リスト: {list.name}</span>
-					</label>
-				{/each}
 				{#each contactGroups as group}
 					<div class="recipient-group">
 						<button type="button" class="group-toggle" aria-expanded={isOrganizationOpen('to', group.name)} onclick={() => toggleOrganization('to', group.name)}>
@@ -307,12 +315,6 @@
 			</div>
 			<h2 class="cc-title">CC</h2>
 			<div class="checks">
-				{#each data.lists as list}
-					<label class="check">
-						<input bind:group={selectedCcListIds} type="checkbox" name="ccListIds" value={list.id} />
-						<span>リスト: {list.name}</span>
-					</label>
-				{/each}
 				{#each contactGroups as group}
 					<div class="recipient-group">
 						<button type="button" class="group-toggle" aria-expanded={isOrganizationOpen('cc', group.name)} onclick={() => toggleOrganization('cc', group.name)}>
@@ -333,8 +335,8 @@
 			</div>
 			<label class="attachment">
 				画像添付
-				<input bind:this={attachmentInput} onchange={compressAttachments} name="attachments" type="file" accept="image/*" multiple />
-				<small>スマホではカメラまたはライブラリから選択できます。選択後に自動で圧縮し、保存せず送信時だけ添付します。</small>
+				<input bind:this={attachmentInput} onchange={compressAttachments} name="attachments" type="file" accept={imageAccept} multiple />
+				<small>JPG/PNG/WebP/HEIC/HEIFを選択できます。スマホではカメラまたはライブラリから選択できます。選択後に自動で圧縮し、保存せず送信時だけ添付します。</small>
 				{#if attachmentStatus}
 					<small class:working={compressingAttachments}>{attachmentStatus}</small>
 				{/if}
@@ -367,6 +369,7 @@
 		padding: 18px;
 	}
 	h2 { margin: 0 0 14px; font-size: 18px; }
+	.recipient-title { margin-top: 18px; }
 	.cc-title { margin-top: 20px; }
 	.tag-panel {
 		display: grid;
