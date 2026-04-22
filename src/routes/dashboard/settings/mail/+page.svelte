@@ -14,7 +14,7 @@
 		<p class="error">{form.error}</p>
 	{/if}
 	{#if form?.success}
-		<p class="success">保存しました</p>
+		<p class="success">{form.success}</p>
 	{/if}
 
 	<section class="card">
@@ -64,6 +64,30 @@
 			<button>保存する</button>
 		</form>
 	</section>
+
+	<section class="card test-card">
+		<div>
+			<h2>接続テスト</h2>
+			<p>保存済みのSMTP設定で、接続・暗号化・認証まで確認します。</p>
+		</div>
+		<form method="POST" action="?/testConnection">
+			<button class="secondary" disabled={!data.settings}>接続をテストする</button>
+		</form>
+	</section>
+
+	<section class="card test-card">
+		<div>
+			<h2>テストメール送信</h2>
+			<p>保存済みのSMTP設定で、指定したアドレスへテストメールを送信します。</p>
+		</div>
+		<form method="POST" action="?/sendTest">
+			<label>
+				テスト送信先
+				<input name="testEmail" type="email" required placeholder="test@example.co.jp" />
+			</label>
+			<button class="secondary" disabled={!data.settings}>テストメールを送信する</button>
+		</form>
+	</section>
 </main>
 
 <style>
@@ -75,11 +99,16 @@
 	h1 { margin: 0; font-size: clamp(34px, 6vw, 54px); letter-spacing: -.05em; }
 	header p { color: #61675f; line-height: 1.7; }
 	.card { border: 1px solid rgba(32,35,31,.14); border-radius: 18px; background: rgba(255,255,255,.84); padding: 22px; box-shadow: 0 18px 50px rgba(55,48,38,.08); }
+	.test-card { margin-top: 14px; }
+	.test-card h2 { margin: 0 0 8px; }
+	.test-card p { margin: 0 0 14px; color: #61675f; line-height: 1.7; }
 	form { display: grid; gap: 14px; }
 	.grid { display: grid; gap: 14px; }
 	label { display: grid; gap: 6px; font-size: 13px; font-weight: 800; }
 	input, select { box-sizing: border-box; width: 100%; border: 1px solid rgba(32,35,31,.18); border-radius: 12px; padding: 12px; font: inherit; background: white; }
 	button { border: none; border-radius: 12px; background: #334f3c; color: white; font-weight: 900; padding: 14px; }
+	button:disabled { opacity: .55; cursor: not-allowed; }
+	.secondary { background: #20231f; }
 	.error, .success { border-radius: 12px; padding: 12px; }
 	.error { background: #ffe8e4; color: #a53024; }
 	.success { background: #e5f7df; color: #246b2c; }

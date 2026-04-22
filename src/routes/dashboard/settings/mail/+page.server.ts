@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/guards';
+import { sendTestMail, testSmtpConnection } from '$lib/server/mailer';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	await requireAdmin(locals);
@@ -73,6 +74,29 @@ export const actions: Actions = {
 			.bind(host, port, secureMode, username || null, password, fromEmail, fromName || null, replyTo || null, now, user.id)
 			.run();
 
-		return { success: true };
+		return { success: 'SMTP設定を保存しました' };
+	},
+	testConnection: async ({ locals }) => {
+		await requireAdmin(locals);
+		try {
+			await testSmtpConnection(locals.db);
+			return { success: 'SMTPサーバーへの接続と認証に成功しました' };
+		} catch (e: any) {
+			return fail(400, { error: e?.message ?? 'SMTP接続テストに失敗しました' });
+		}
+	},
+	sendTest: async ({ request, locals }) => {
+		await requireAdmin(locals);
+		const form = await request.formData();
+		const testEmail = String(form.get('testEmail') ?? '').trim();
+		if (!testEmail || !testEmail.includes('@')) {
+			return fail(400, { error: 'テスト送信先メールアドレスを入力してください' });
+		}
+		try {
+			await sendTestMail(locals.db, testEmail);
+			return { success: `テストメールを ${testEmail} に送信しました` };
+		} catch (e: any) {
+			return fail(400, { error: e?.message ?? 'テストメール送信に失敗しました' });
+		}
 	}
 };

@@ -219,6 +219,46 @@ async function connectSmtp(settings: SmtpSettings) {
 	return client;
 }
 
+async function authenticateSmtp(client: SmtpClient, settings: SmtpSettings) {
+	if (!settings.username && !settings.password) return;
+	if (!settings.username || !settings.password) {
+		throw new Error('SMTPユーザー名とパスワードを両方設定してください');
+	}
+	await client.command('AUTH LOGIN', [334]);
+	await client.command(bytesToBase64(new TextEncoder().encode(settings.username)), [334]);
+	await client.command(bytesToBase64(new TextEncoder().encode(settings.password)), [235]);
+}
+
+export async function testSmtpConnection(db: D1Database) {
+	const settings = await getSmtpSettings(db);
+	if (!settings) throw new Error('SMTP送信設定が未設定です');
+
+	const client = await connectSmtp(settings);
+	try {
+		await authenticateSmtp(client, settings);
+		await client.command('QUIT', [221]);
+	} finally {
+		await client.close();
+	}
+}
+
+export async function sendTestMail(db: D1Database, toEmail: string) {
+	const settings = await getSmtpSettings(db);
+	if (!settings) throw new Error('SMTP送信設定が未設定です');
+	const recipient = {
+		name: 'テスト送信',
+		email: toEmail,
+		kind: 'to' as const
+	};
+	const now = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+	return sendReportMail(
+		db,
+		[recipient],
+		'【Report Sender】SMTPテストメール',
+		`Report SenderからのSMTPテストメールです。\n\n送信日時: ${now}\n送信元: ${settings.from_email}\n\nこのメールが届いていれば、SMTP送信設定は動作しています。`
+	);
+}
+
 export async function sendReportMail(
 	db: D1Database,
 	recipients: MailRecipient[],
@@ -235,11 +275,7 @@ export async function sendReportMail(
 
 	const client = await connectSmtp(settings);
 	try {
-		if (settings.username && settings.password) {
-			await client.command('AUTH LOGIN', [334]);
-			await client.command(bytesToBase64(new TextEncoder().encode(settings.username)), [334]);
-			await client.command(bytesToBase64(new TextEncoder().encode(settings.password)), [235]);
-		}
+		await authenticateSmtp(client, settings);
 
 		await client.command(`MAIL FROM:<${settings.from_email}>`, [250]);
 		for (const recipient of [...to, ...cc]) {
