@@ -81,6 +81,7 @@
 				<div class="account-menu">
 					<span>{displayName}</span>
 					<a href="/dashboard/settings/profile">ユーザー設定</a>
+					<a href="/dashboard/settings/stamp">画像文字入れ設定</a>
 					{#if isAdmin}
 						<a href="/dashboard/settings/mail">メール設定</a>
 					{/if}

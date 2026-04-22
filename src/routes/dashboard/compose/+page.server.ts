@@ -12,7 +12,7 @@ type Recipient = {
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user, profile } = await requireDashboardUser(locals);
-	const [contacts, lists, templates, mailSettings, siteSetting] = await Promise.all([
+	const [contacts, lists, listMembers, templates, mailSettings, siteSetting, stampSetting] = await Promise.all([
 		locals.db
 			.prepare(
 				`SELECT id, name, email, organization
@@ -30,6 +30,22 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.all<{ id: string; name: string }>(),
 		locals.db
 			.prepare(
+				`SELECT recipient_list_members.list_id AS listId,
+				        recipient_list_members.kind,
+				        contacts.id,
+				        contacts.name,
+				        contacts.email,
+				        contacts.organization
+				 FROM recipient_list_members
+				 INNER JOIN recipient_lists ON recipient_lists.id = recipient_list_members.list_id
+				 INNER JOIN contacts ON contacts.id = recipient_list_members.contact_id
+				 WHERE recipient_lists.created_by = ?1
+				 ORDER BY recipient_list_members.kind DESC, contacts.name COLLATE NOCASE`
+			)
+			.bind(user.id)
+			.all<Recipient & { listId: string; kind: 'to' | 'cc' }>(),
+		locals.db
+			.prepare(
 				`SELECT id, name, subject, body, to_list_ids AS toListIdsJson, cc_list_ids AS ccListIdsJson
 				 FROM mail_templates
 				 WHERE created_by = ?1
@@ -38,7 +54,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.bind(user.id)
 			.all<{ id: string; name: string; subject: string; body: string; toListIdsJson: string; ccListIdsJson: string }>(),
 		getSmtpSettings(locals.db),
-		locals.db.prepare("SELECT value FROM app_settings WHERE key = 'site_name'").first<{ value: string }>()
+		locals.db.prepare("SELECT value FROM app_settings WHERE key = 'site_name'").first<{ value: string }>(),
+		locals.db.prepare("SELECT value FROM app_settings WHERE key = 'image_stamp_template'").first<{ value: string }>()
 	]);
 
 	return {
@@ -46,6 +63,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		userName: profile?.displayName ?? user.displayName ?? '',
 		contacts: contacts.results ?? [],
 		lists: lists.results ?? [],
+		listMembers: listMembers.results ?? [],
 		templates: (templates.results ?? []).map((template) => ({
 			id: template.id,
 			name: template.name,
@@ -54,6 +72,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			toListIds: parseTemplateListIds(template.toListIdsJson),
 			ccListIds: parseTemplateListIds(template.ccListIdsJson)
 		})),
+		imageStampTemplate: stampSetting?.value ?? '{name}\n{today}\n{floor}\n{%}',
 		mailConfigured: Boolean(mailSettings)
 	};
 };

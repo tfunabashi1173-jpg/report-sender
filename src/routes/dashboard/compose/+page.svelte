@@ -1,5 +1,10 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
+
 	let { data, form } = $props();
+	type Contact = { id: string; name: string; email: string; organization: string | null };
+	type PreviewImage = { name: string; size: string; url: string };
+
 	let selectedTemplateId = $state('');
 	let appliedTemplateId = $state('');
 	let selectedFloor = $state('');
@@ -12,8 +17,12 @@
 	let subject = $state('');
 	let body = $state('');
 	let attachmentInput: HTMLInputElement;
+	let sendSubmitButton: HTMLButtonElement;
 	let attachmentStatus = $state('');
 	let compressingAttachments = $state(false);
+	let confirmOpen = $state(false);
+	let confirmedSend = $state(false);
+	let previewImages = $state<PreviewImage[]>([]);
 
 	const floors = Array.from({ length: 60 }, (_, index) => `${index + 1}階`);
 	const percents = Array.from({ length: 10 }, (_, index) => `${(index + 1) * 10}%`);
@@ -26,6 +35,11 @@
 	const imageQuality = 0.72;
 	const imageAccept = 'image/*,.jpg,.jpeg,.png,.webp,.gif,.heic,.heif';
 	const contactGroups = $derived(groupContactsByOrganization(data.contacts));
+	const contactsById = $derived(new Map<string, Contact>(data.contacts.map((contact: Contact) => [contact.id, contact])));
+	const previewSubject = $derived(applyTags(subject));
+	const previewBody = $derived(applyTags(body));
+	const previewToRecipients = $derived(resolvePreviewToRecipients());
+	const previewCcRecipients = $derived(resolvePreviewCcRecipients());
 
 	function groupContactsByOrganization(
 		contacts: Array<{ id: string; name: string; email: string; organization: string | null }>
@@ -105,19 +119,101 @@
 		return file.type.startsWith('image/') && file.type !== 'image/gif' && file.type !== 'image/svg+xml';
 	}
 
-	function selectedTemplateText() {
-		const template = data.templates.find((item) => item.id === (appliedTemplateId || selectedTemplateId));
-		return template ? `${template.name}\n${template.subject}\n${template.body}` : `${subject}\n${body}`;
+	function applyImageStampTags(value: string) {
+		return value
+			.replaceAll('{name}', data.userName ?? '')
+			.replaceAll('{today}', formatToday())
+			.replaceAll('{floor}', selectedFloor)
+			.replaceAll('{%}', selectedPercent);
 	}
 
 	function imageStampLines() {
-		const source = selectedTemplateText();
-		const lines = [data.userName || ''];
-		if (source.includes('{today}') || source.includes('{{today}}')) lines.push(formatToday());
-		if ((source.includes('{floor}') || source.includes('{{floor}}')) && selectedFloor) lines.push(selectedFloor);
-		if (source.includes('{%}') && selectedPercent) lines.push(selectedPercent);
-		return lines.filter((line) => line.trim().length > 0);
+		return String(data.imageStampTemplate ?? '')
+			.split(/\r?\n/)
+			.map((line) => applyImageStampTags(line).trim())
+			.filter((line) => line.length > 0);
 	}
+
+	function uniqueByEmail(recipients: Contact[]) {
+		const merged = new Map<string, Contact>();
+		for (const recipient of recipients) merged.set(recipient.email.toLowerCase(), recipient);
+		return [...merged.values()];
+	}
+
+	function resolvePreviewRecipientsByKind(kind: 'to' | 'cc'): Contact[] {
+		const selectedListMembers = selectedMailingListId
+			? data.listMembers.filter((member: Contact & { listId: string; kind: 'to' | 'cc' }) => member.listId === selectedMailingListId && member.kind === kind)
+			: [];
+		const manualIds = kind === 'to' ? selectedToContactIds : selectedCcContactIds;
+		const manualRecipients = manualIds.map((id) => contactsById.get(id)).filter((contact): contact is Contact => Boolean(contact));
+		return uniqueByEmail([...selectedListMembers, ...manualRecipients]);
+	}
+
+	function resolvePreviewToRecipients(): Contact[] {
+		return resolvePreviewRecipientsByKind('to');
+	}
+
+	function resolvePreviewCcRecipients(): Contact[] {
+		const recipients = resolvePreviewRecipientsByKind('cc');
+		const toEmails = new Set<string>(resolvePreviewToRecipients().map((recipient: Contact) => recipient.email.toLowerCase()));
+		return recipients.filter((recipient: Contact) => !toEmails.has(recipient.email.toLowerCase()));
+	}
+
+	function clearPreviewImages() {
+		for (const image of previewImages) URL.revokeObjectURL(image.url);
+		previewImages = [];
+	}
+
+	function refreshPreviewImages() {
+		clearPreviewImages();
+		previewImages = Array.from(attachmentInput?.files ?? [])
+			.filter((file) => file.type.startsWith('image/'))
+			.map((file) => ({
+				name: file.name,
+				size: formatFileSize(file.size),
+				url: URL.createObjectURL(file)
+			}));
+	}
+
+	function openSendConfirm() {
+		if (!subject.trim() || !body.trim()) {
+			attachmentStatus = '件名と本文を入力してください。';
+			return;
+		}
+		if (previewToRecipients.length === 0) {
+			attachmentStatus = 'メイン宛先を1件以上選択してください。';
+			return;
+		}
+		refreshPreviewImages();
+		confirmOpen = true;
+	}
+
+	function closeSendConfirm() {
+		confirmOpen = false;
+	}
+
+	function cancelSendConfirm() {
+		closeSendConfirm();
+		clearPreviewImages();
+	}
+
+	function confirmSend() {
+		confirmedSend = true;
+		closeSendConfirm();
+		sendSubmitButton?.click();
+	}
+
+	function handleSubmit(event: SubmitEvent) {
+		const submitter = event.submitter as HTMLButtonElement | null;
+		if (submitter?.dataset.confirmSend === 'true' && !confirmedSend) {
+			event.preventDefault();
+			openSendConfirm();
+			return;
+		}
+		prepareSubmit();
+	}
+
+	onDestroy(clearPreviewImages);
 
 	function drawImageStamp(context: CanvasRenderingContext2D, width: number, height: number) {
 		const lines = imageStampLines();
@@ -225,7 +321,7 @@
 		<p class="error">送信メール設定が未設定です。管理者が設定するとサーバー送信できます。</p>
 	{/if}
 
-	<form class="composer" method="POST" enctype="multipart/form-data" onsubmit={prepareSubmit}>
+	<form class="composer" method="POST" enctype="multipart/form-data" onsubmit={handleSubmit}>
 		<section class="card">
 			<h2>本文</h2>
 			<div class="tag-panel">
@@ -348,9 +444,75 @@
 
 		<div class="actions">
 			<button formaction="?/draft" class="secondary">下書き保存</button>
-			<button formaction="?/send" class="primary" disabled={!data.mailConfigured || compressingAttachments}>サーバーから送信</button>
+			<button type="button" class="primary" disabled={!data.mailConfigured || compressingAttachments} onclick={openSendConfirm}>サーバーから送信</button>
+			<button bind:this={sendSubmitButton} class="sr-only" formaction="?/send" data-confirm-send="true" aria-hidden="true" tabindex="-1">送信</button>
 		</div>
 	</form>
+
+	{#if confirmOpen}
+		<div class="modal-backdrop" role="presentation">
+			<div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+				<div class="modal-head">
+					<p class="eyebrow">Confirm</p>
+					<h2 id="confirm-title">送信内容の確認</h2>
+				</div>
+				<div class="confirm-grid">
+					<section>
+						<h3>宛先 TO</h3>
+						{#if previewToRecipients.length === 0}
+							<p class="empty">未選択</p>
+						{:else}
+							<div class="recipient-preview">
+								{#each previewToRecipients as recipient}
+									<span>{recipient.name}<small>{recipient.email}</small></span>
+								{/each}
+							</div>
+						{/if}
+					</section>
+					<section>
+						<h3>宛先 CC</h3>
+						{#if previewCcRecipients.length === 0}
+							<p class="empty">なし</p>
+						{:else}
+							<div class="recipient-preview">
+								{#each previewCcRecipients as recipient}
+									<span>{recipient.name}<small>{recipient.email}</small></span>
+								{/each}
+							</div>
+						{/if}
+					</section>
+					<section class="wide">
+						<h3>タイトル</h3>
+						<p class="subject-preview">{previewSubject}</p>
+					</section>
+					<section class="wide">
+						<h3>本文</h3>
+						<pre class="body-preview">{previewBody}</pre>
+					</section>
+					<section class="wide">
+						<h3>画像</h3>
+						{#if previewImages.length === 0}
+							<p class="empty">添付画像なし</p>
+						{:else}
+							<div class="thumbs">
+								{#each previewImages as image}
+									<figure>
+										<img src={image.url} alt={image.name} />
+										<figcaption>{image.name}<small>{image.size}</small></figcaption>
+									</figure>
+								{/each}
+							</div>
+						{/if}
+					</section>
+				</div>
+				<div class="modal-actions">
+					<button type="button" class="secondary" onclick={confirmSend}>送信</button>
+					<button type="button" class="subtle" onclick={closeSendConfirm}>戻る</button>
+					<button type="button" class="danger" onclick={cancelSendConfirm}>中止</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </main>
 
 <style>
@@ -485,6 +647,119 @@
 		background: rgba(255,255,255,.88);
 		backdrop-filter: blur(10px);
 	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+	.modal-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 50;
+		display: grid;
+		place-items: center;
+		background: rgba(15, 23, 42, .42);
+		padding: 18px;
+		backdrop-filter: blur(12px);
+	}
+	.confirm-modal {
+		display: grid;
+		gap: 18px;
+		width: min(920px, 100%);
+		max-height: min(86vh, 900px);
+		overflow: auto;
+		border-radius: 28px;
+		background: #fff;
+		box-shadow: 0 30px 90px rgba(15, 23, 42, .28);
+		padding: 22px;
+	}
+	.modal-head h2 {
+		margin: 0;
+	}
+	.confirm-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px;
+	}
+	.confirm-grid section {
+		border-radius: 18px;
+		background: #f8fafc;
+		padding: 14px;
+	}
+	.confirm-grid .wide {
+		grid-column: 1 / -1;
+	}
+	h3 {
+		margin: 0 0 10px;
+		color: #262a33;
+		font-size: 13px;
+		font-weight: 800;
+	}
+	.recipient-preview {
+		display: grid;
+		gap: 8px;
+	}
+	.recipient-preview span {
+		display: grid;
+		gap: 2px;
+		border-radius: 14px;
+		background: #fff;
+		padding: 10px;
+		font-weight: 700;
+	}
+	.subject-preview {
+		margin: 0;
+		font-weight: 750;
+		line-height: 1.7;
+	}
+	.body-preview {
+		max-height: 260px;
+		overflow: auto;
+		margin: 0;
+		white-space: pre-wrap;
+		font: inherit;
+		line-height: 1.7;
+	}
+	.thumbs {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+		gap: 10px;
+	}
+	.thumbs figure {
+		display: grid;
+		gap: 8px;
+		margin: 0;
+	}
+	.thumbs img {
+		width: 100%;
+		aspect-ratio: 4 / 3;
+		border-radius: 14px;
+		object-fit: cover;
+		background: #e5e7eb;
+	}
+	.thumbs figcaption {
+		display: grid;
+		gap: 2px;
+		color: #3f4652;
+		font-size: 12px;
+		overflow-wrap: anywhere;
+	}
+	.modal-actions {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		gap: 10px;
+	}
+	.subtle {
+		background: #eef2f7;
+		color: #24262b;
+	}
+	.subtle:hover {
+		background: #e5e7eb;
+		color: #24262b;
+	}
 	button { border: none; border-radius: 14px; font-weight: 900; padding: 14px; }
 	button:disabled { opacity: .55; cursor: not-allowed; }
 	.primary, .sub-button { background: #f08a24; color: #1c1207; }
@@ -493,7 +768,7 @@
 	.secondary:hover { background: #24352c; color: white; }
 	.error { border-radius: 14px; padding: 12px; background: #ffe8e4; color: #a53024; }
 	@media (max-width: 620px) {
-		.template-row, .actions { grid-template-columns: 1fr; }
+		.template-row, .actions, .confirm-grid, .modal-actions { grid-template-columns: 1fr; }
 	}
 	@media (min-width: 1024px) {
 		.composer {
@@ -538,6 +813,7 @@
 	.group-toggle:hover { background: #eef2f7 !important; color: #24262b !important; }
 	.primary:hover, .sub-button:hover { background: #dd7b1b !important; color: #1c1207 !important; }
 	.secondary:hover { background: #24352c !important; color: #fff !important; }
+	.subtle, .subtle:hover { background: #eef2f7 !important; color: #24262b !important; }
 	.danger, .plain { background: #fff1f0 !important; color: #b42318 !important; }
 	.error { border: 0; border-radius: 16px; background: #fff1f0; color: #b42318; }
 	.success { border: 0; border-radius: 16px; background: #ecfdf3; color: #067647; }
