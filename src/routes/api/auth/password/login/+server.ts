@@ -4,27 +4,32 @@ import { createSession, setSessionCookie } from '$lib/server/auth';
 import { verifyPassword } from '$lib/server/password';
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
-	const { loginId, password } = await request.json();
+	const { displayName, password } = await request.json();
 
-	if (typeof loginId !== 'string' || loginId.trim().length === 0) {
-		return json({ error: 'ログインIDは必須です' }, { status: 400 });
+	if (typeof displayName !== 'string' || displayName.trim().length === 0) {
+		return json({ error: '名前は必須です' }, { status: 400 });
 	}
 	if (typeof password !== 'string' || password.length === 0) {
 		return json({ error: 'パスワードは必須です' }, { status: 400 });
 	}
 
 	const user = (await locals.db
-		.prepare('SELECT id, password_hash AS passwordHash FROM users WHERE login_id = ?1')
-		.bind(loginId.trim())
+		.prepare(
+			`SELECT users.id AS id, users.password_hash AS passwordHash
+			 FROM users
+			 JOIN profiles ON profiles.id = users.id
+			 WHERE profiles.display_name = ?1`
+		)
+		.bind(displayName.trim())
 		.first()) as { id: string; passwordHash: string | null } | null;
 
 	if (!user?.passwordHash) {
-		return json({ error: 'ログインIDまたはパスワードが正しくありません' }, { status: 401 });
+		return json({ error: '名前またはパスワードが正しくありません' }, { status: 401 });
 	}
 
 	const valid = await verifyPassword(password, user.passwordHash);
 	if (!valid) {
-		return json({ error: 'ログインIDまたはパスワードが正しくありません' }, { status: 401 });
+		return json({ error: '名前またはパスワードが正しくありません' }, { status: 401 });
 	}
 
 	const { sessionId, expiresAt } = await createSession(locals.db, user.id);

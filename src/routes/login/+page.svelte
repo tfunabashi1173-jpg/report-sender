@@ -7,14 +7,12 @@
 	let error = $state('');
 	let hasAdmin = $state<boolean | null>(null);
 
-	let loginId = $state('');
+	let displayName = $state('');
 	let password = $state('');
 	let passwordLoading = $state(false);
 
 	let setupName = $state('');
-	let setupLoginId = $state('');
 	let setupPassword = $state('');
-	let setupBootstrapKey = $state('');
 	let setupLoading = $state(false);
 
 	async function loginWithPasskey() {
@@ -50,8 +48,8 @@
 	}
 
 	async function loginWithPassword() {
-		if (!loginId.trim() || !password) {
-			error = 'ログインIDとパスワードを入力してください';
+		if (!displayName.trim() || !password) {
+			error = '名前とパスワードを入力してください';
 			return;
 		}
 
@@ -61,7 +59,7 @@
 			const res = await fetch('/api/auth/password/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ loginId, password })
+				body: JSON.stringify({ displayName, password })
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? 'パスワードログインに失敗しました');
@@ -74,8 +72,8 @@
 	}
 
 	async function createFirstAdmin() {
-		if (!setupName.trim() || !setupLoginId.trim() || !setupPassword || !setupBootstrapKey.trim()) {
-			error = '管理者名・ログインID・ログインパスワード・初期化キーは必須です';
+		if (!setupName.trim() || !setupPassword) {
+			error = '管理者名とログインパスワードは必須です';
 			return;
 		}
 		if (setupPassword.length < 8) {
@@ -91,9 +89,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					displayName: setupName,
-					loginId: setupLoginId,
-					password: setupPassword,
-					bootstrapKey: setupBootstrapKey
+					password: setupPassword
 				})
 			});
 			const result = await res.json();
@@ -156,20 +152,20 @@
 	{#if hasAdmin === null}
 		<p class="hint">状態を確認中...</p>
 	{:else if hasAdmin}
-		<p class="hint">パスキーが使えない場合は、ログインIDとパスワードでログインしてください。</p>
+		<p class="hint">パスキーが使えない場合は、名前とパスワードでログインしてください。</p>
 
 		<section class="setup">
 			<h2>パスワードログイン</h2>
 			<label>
-				ログインID
-				<input type="text" bind:value={loginId} placeholder="taro" />
+				名前
+				<input type="text" bind:value={displayName} placeholder="山田 太郎" />
 			</label>
 			<label>
 				ログインパスワード
 				<input type="password" bind:value={password} placeholder="8文字以上" />
 			</label>
-			<button class="btn-secondary" onclick={loginWithPassword} disabled={passwordLoading || !loginId.trim() || !password}>
-				{passwordLoading ? 'ログイン中...' : 'IDとパスワードでログイン'}
+			<button class="btn-secondary" onclick={loginWithPassword} disabled={passwordLoading || !displayName.trim() || !password}>
+				{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
 			</button>
 		</section>
 	{:else}
@@ -182,27 +178,13 @@
 				<input type="text" bind:value={setupName} placeholder="管理者" />
 			</label>
 			<label>
-				ログインID
-				<input type="text" bind:value={setupLoginId} placeholder="admin" />
-			</label>
-			<label>
 				ログインパスワード
 				<input type="password" bind:value={setupPassword} placeholder="8文字以上" />
-			</label>
-			<label>
-				初期化キー
-				<input type="password" bind:value={setupBootstrapKey} placeholder="BOOTSTRAP_ADMIN_KEY" />
 			</label>
 			<button
 				class="btn-secondary"
 				onclick={createFirstAdmin}
-				disabled={
-					setupLoading ||
-					!setupName.trim() ||
-					!setupLoginId.trim() ||
-					!setupPassword ||
-					!setupBootstrapKey.trim()
-				}
+				disabled={setupLoading || !setupName.trim() || !setupPassword}
 			>
 				{setupLoading ? '作成中...' : '初期管理者を作成してパスキー登録'}
 			</button>

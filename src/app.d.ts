@@ -17,7 +17,6 @@ declare global {
 			env: {
 				DB: D1Database;
 				REPORT_ASSETS: R2Bucket;
-				BOOTSTRAP_ADMIN_KEY?: string;
 				TWILIO_ACCOUNT_SID?: string;
 				TWILIO_AUTH_TOKEN?: string;
 				TWILIO_PHONE_NUMBER?: string;
