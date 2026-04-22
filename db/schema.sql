@@ -129,6 +129,9 @@ CREATE TABLE IF NOT EXISTS reports (
 	created_at TEXT NOT NULL,
 	updated_at TEXT NOT NULL,
 	sent_at TEXT,
+	delivery_status TEXT NOT NULL DEFAULT 'not_sent',
+	delivery_error TEXT,
+	provider_message_id TEXT,
 	FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -147,3 +150,16 @@ CREATE TABLE IF NOT EXISTS report_recipients (
 );
 
 CREATE INDEX IF NOT EXISTS idx_report_recipients_report_id ON report_recipients(report_id);
+
+CREATE TABLE IF NOT EXISTS mail_settings (
+	id TEXT PRIMARY KEY,
+	provider TEXT NOT NULL CHECK(provider IN ('resend', 'sendgrid')),
+	api_key TEXT NOT NULL,
+	from_email TEXT NOT NULL,
+	from_name TEXT,
+	reply_to TEXT,
+	created_at TEXT NOT NULL,
+	updated_at TEXT NOT NULL,
+	updated_by TEXT NOT NULL,
+	FOREIGN KEY (updated_by) REFERENCES users(id)
+);

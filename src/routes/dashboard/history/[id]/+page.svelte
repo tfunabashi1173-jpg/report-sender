@@ -1,12 +1,5 @@
 <script lang="ts">
 	let { data } = $props();
-
-	const mailto = $derived.by(() => {
-		const to = data.recipients.map((recipient) => recipient.email).join(',');
-		const subject = encodeURIComponent(data.report.subject);
-		const body = encodeURIComponent(data.report.body);
-		return `mailto:${to}?subject=${subject}&body=${body}`;
-	});
 </script>
 
 <main class="page">
@@ -18,6 +11,10 @@
 
 	<section class="card">
 		<h2>宛先</h2>
+		<p class="status">送信状態: {data.report.deliveryStatus === 'sent' ? '送信済み' : data.report.deliveryStatus === 'failed' ? '送信失敗' : '未送信'}</p>
+		{#if data.report.deliveryError}
+			<p class="error">{data.report.deliveryError}</p>
+		{/if}
 		{#if data.recipients.length === 0}
 			<p class="empty">宛先なし</p>
 		{:else}
@@ -35,12 +32,9 @@
 	</section>
 
 	<div class="actions">
-		{#if data.recipients.length > 0}
-			<a class="primary" href={mailto}>メールアプリで開く</a>
-		{/if}
 		{#if data.report.status === 'draft'}
-			<form method="POST" action="?/markSent">
-				<button>送信済みにする</button>
+			<form method="POST" action="?/sendNow">
+				<button disabled={!data.mailConfigured || data.recipients.length === 0}>サーバーから送信</button>
 			</form>
 		{/if}
 		<form method="POST" action="?/delete">
@@ -74,6 +68,8 @@
 		background: rgba(23,33,27,.06);
 	}
 	small, .empty { color: #69746d; }
+	.status { margin: 0 0 12px; color: #69746d; }
+	.error { border-radius: 14px; padding: 12px; background: #ffe8e4; color: #a53024; }
 	pre {
 		margin: 0;
 		white-space: pre-wrap;
@@ -86,7 +82,7 @@
 		gap: 10px;
 		margin-top: 14px;
 	}
-	.primary, button {
+	button {
 		display: block;
 		box-sizing: border-box;
 		width: 100%;
@@ -100,6 +96,7 @@
 		padding: 14px;
 		font: inherit;
 	}
+	button:disabled { opacity: .55; cursor: not-allowed; }
 	.danger { background: rgba(191,56,42,.1); color: #a53024; }
 	@media (min-width: 960px) {
 		.page {

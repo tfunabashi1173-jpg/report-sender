@@ -104,6 +104,17 @@ export async function ensureRuntimeSchema(db: D1Database) {
 			.run();
 		await db.prepare('CREATE INDEX IF NOT EXISTS idx_reports_created_by ON reports(created_by)').run();
 		await db.prepare('CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status)').run();
+		const reportColumns = await db.prepare("SELECT name FROM pragma_table_info('reports')").all<{ name: string }>();
+		const reportColumnNames = new Set((reportColumns.results ?? []).map((r) => r.name));
+		if (!reportColumnNames.has('delivery_status')) {
+			await db.prepare("ALTER TABLE reports ADD COLUMN delivery_status TEXT NOT NULL DEFAULT 'not_sent'").run();
+		}
+		if (!reportColumnNames.has('delivery_error')) {
+			await db.prepare('ALTER TABLE reports ADD COLUMN delivery_error TEXT').run();
+		}
+		if (!reportColumnNames.has('provider_message_id')) {
+			await db.prepare('ALTER TABLE reports ADD COLUMN provider_message_id TEXT').run();
+		}
 
 		await db
 			.prepare(
@@ -120,6 +131,23 @@ export async function ensureRuntimeSchema(db: D1Database) {
 			)
 			.run();
 		await db.prepare('CREATE INDEX IF NOT EXISTS idx_report_recipients_report_id ON report_recipients(report_id)').run();
+
+		await db
+			.prepare(
+				`CREATE TABLE IF NOT EXISTS mail_settings (
+					id TEXT PRIMARY KEY,
+					provider TEXT NOT NULL CHECK(provider IN ('resend', 'sendgrid')),
+					api_key TEXT NOT NULL,
+					from_email TEXT NOT NULL,
+					from_name TEXT,
+					reply_to TEXT,
+					created_at TEXT NOT NULL,
+					updated_at TEXT NOT NULL,
+					updated_by TEXT NOT NULL,
+					FOREIGN KEY (updated_by) REFERENCES users(id)
+				)`
+			)
+			.run();
 	})();
 
 	try {

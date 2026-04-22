@@ -50,6 +50,7 @@
 		<a href="/dashboard/history">履歴</a>
 		{#if data.profile?.role === 'admin'}
 			<a href="/dashboard/invite">招待</a>
+			<a href="/dashboard/settings/mail">メール設定</a>
 		{/if}
 	</nav>
 

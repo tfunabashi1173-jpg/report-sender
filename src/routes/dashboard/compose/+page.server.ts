@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
+import { getMailSettings, sendReportMail } from '$lib/server/mailer';
 
 type Recipient = {
 	id: string;
@@ -10,7 +11,7 @@ type Recipient = {
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = await requireDashboardUser(locals);
-	const [contacts, lists, templates] = await Promise.all([
+	const [contacts, lists, templates, mailSettings] = await Promise.all([
 		locals.db
 			.prepare('SELECT id, name, email FROM contacts WHERE created_by = ?1 ORDER BY name COLLATE NOCASE')
 			.bind(user.id)
@@ -22,13 +23,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		locals.db
 			.prepare('SELECT id, name, subject, body FROM mail_templates WHERE created_by = ?1 ORDER BY name COLLATE NOCASE')
 			.bind(user.id)
-			.all<{ id: string; name: string; subject: string; body: string }>()
+			.all<{ id: string; name: string; subject: string; body: string }>(),
+		getMailSettings(locals.db)
 	]);
 
 	return {
 		contacts: contacts.results ?? [],
 		lists: lists.results ?? [],
-		templates: templates.results ?? []
+		templates: templates.results ?? [],
+		mailConfigured: Boolean(mailSettings)
 	};
 };
 
@@ -100,6 +103,30 @@ async function saveReport(request: Request, locals: App.Locals, status: 'draft' 
 			)
 			.bind(reportId, recipient.id, recipient.name, recipient.email, now)
 			.run();
+	}
+
+	if (status === 'sent') {
+		try {
+			const result = await sendReportMail(locals.db, recipients, subject, body);
+			await locals.db
+				.prepare(
+					`UPDATE reports
+					 SET delivery_status = 'sent', provider_message_id = ?1, sent_at = ?2, updated_at = ?2
+					 WHERE id = ?3 AND created_by = ?4`
+				)
+				.bind(result.messageIds.join(',') || null, new Date().toISOString(), reportId, user.id)
+				.run();
+		} catch (e: any) {
+			await locals.db
+				.prepare(
+					`UPDATE reports
+					 SET status = 'draft', delivery_status = 'failed', delivery_error = ?1, updated_at = ?2
+					 WHERE id = ?3 AND created_by = ?4`
+				)
+				.bind(e?.message ?? '送信に失敗しました', new Date().toISOString(), reportId, user.id)
+				.run();
+			return fail(400, { error: e?.message ?? '送信に失敗しました' });
+		}
 	}
 
 	redirect(303, `/dashboard/history/${reportId}`);

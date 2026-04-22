@@ -22,6 +22,9 @@
 	{#if form?.error}
 		<p class="error">{form.error}</p>
 	{/if}
+	{#if !data.mailConfigured}
+		<p class="error">送信メール設定が未設定です。管理者が設定するとサーバー送信できます。</p>
+	{/if}
 
 	<form class="composer" method="POST">
 		<section class="card">
@@ -71,7 +74,7 @@
 
 		<div class="actions">
 			<button formaction="?/draft" class="secondary">下書き保存</button>
-			<button formaction="?/send" class="primary">送信記録を作成</button>
+			<button formaction="?/send" class="primary" disabled={!data.mailConfigured}>サーバーから送信</button>
 		</div>
 	</form>
 </main>
@@ -129,6 +132,7 @@
 		backdrop-filter: blur(10px);
 	}
 	button { border: none; border-radius: 14px; font-weight: 900; padding: 14px; }
+	button:disabled { opacity: .55; cursor: not-allowed; }
 	.primary, .sub-button { background: #f08a24; color: #1c1207; }
 	.secondary { background: #17211b; color: white; }
 	.error { border-radius: 14px; padding: 12px; background: #ffe8e4; color: #a53024; }
