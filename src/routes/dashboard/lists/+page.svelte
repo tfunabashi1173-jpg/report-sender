@@ -117,6 +117,19 @@
 
 						{#if expandedListId === list.id}
 							<div class="list-panel">
+								<form class="list-edit" method="POST" action="?/update">
+									<input type="hidden" name="id" value={list.id} />
+									<label>
+										リスト名
+										<input name="name" required value={list.name} />
+									</label>
+									<label>
+										説明
+										<textarea name="description" rows="3" placeholder="用途や対象">{list.description ?? ''}</textarea>
+									</label>
+									<button>リスト情報を保存</button>
+								</form>
+
 								<form class="add" method="POST" action="?/addMember">
 									<input type="hidden" name="listId" value={list.id} />
 									<div class="recipient-row">
@@ -238,6 +251,13 @@
 		margin-top: 14px;
 		border-top: 1px solid #eef1f5;
 		padding-top: 14px;
+	}
+	.list-edit {
+		display: grid;
+		gap: 12px;
+		border-radius: 18px;
+		background: #f8fafc;
+		padding: 12px;
 	}
 	.add { display: grid; gap: 12px; }
 	.recipient-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 120px; gap: 10px; }

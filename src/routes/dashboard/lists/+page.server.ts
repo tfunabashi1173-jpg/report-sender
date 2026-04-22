@@ -77,6 +77,27 @@ export const actions: Actions = {
 			.run();
 		redirect(303, '/dashboard/lists');
 	},
+	update: async ({ request, locals }) => {
+		const { user } = await requireDashboardUser(locals);
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '').trim();
+		const name = String(form.get('name') ?? '').trim();
+		const description = String(form.get('description') ?? '').trim();
+		if (!id) return fail(400, { error: '更新対象が見つかりません' });
+		if (!name) return fail(400, { error: 'リスト名は必須です' });
+
+		const result = await locals.db
+			.prepare(
+				`UPDATE recipient_lists
+				 SET name = ?1, description = ?2, updated_at = ?3
+				 WHERE id = ?4 AND created_by = ?5`
+			)
+			.bind(name, description || null, new Date().toISOString(), id, user.id)
+			.run();
+		if (result.meta.changes === 0) return fail(404, { error: 'リストが見つかりません' });
+
+		redirect(303, '/dashboard/lists');
+	},
 	addMember: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
 		const form = await request.formData();
