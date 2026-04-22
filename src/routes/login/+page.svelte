@@ -2,9 +2,11 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
+	let { data } = $props();
+
 	let loading = $state(false);
 	let error = $state('');
-	let hasAdmin = $state<boolean | null>(null);
+	let hasAdmin = $state(Boolean(data.hasAdmin));
 
 	let displayName = $state('');
 	let password = $state('');
@@ -151,7 +153,11 @@
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? '初期管理者の作成に失敗しました');
 			hasAdmin = true;
-			await registerCurrentUserPasskey();
+			try {
+				await registerCurrentUserPasskey();
+			} catch (passkeyError) {
+				console.warn('Passkey registration skipped after admin creation', passkeyError);
+			}
 			goto('/dashboard');
 		} catch (e: any) {
 			error = e.message;
@@ -243,9 +249,7 @@
 		{loading ? '認証中...' : 'Face ID / パスキーでログイン'}
 	</button>
 
-	{#if hasAdmin === null}
-		<p class="hint">状態を確認中...</p>
-	{:else if hasAdmin}
+	{#if hasAdmin}
 		<p class="hint">パスキーが使えない場合は、名前とパスワードでログインしてください。</p>
 
 		<section class="setup">
