@@ -1,6 +1,7 @@
 <script lang="ts">
 	let { data, form } = $props();
 	let selectedTemplateId = $state('');
+	let appliedTemplateId = $state('');
 	let selectedFloor = $state('');
 	let selectedPercent = $state('');
 	let selectedToListIds = $state<string[]>([]);
@@ -36,11 +37,20 @@
 	function applyTemplate() {
 		const template = data.templates.find((item) => item.id === selectedTemplateId);
 		if (!template) return;
+		appliedTemplateId = template.id;
 		subject = applyTags(template.subject);
 		body = applyTags(template.body);
 		selectedToListIds = [...template.toListIds];
 		selectedCcListIds = [...template.ccListIds];
 	}
+
+	$effect(() => {
+		if (!appliedTemplateId) return;
+		const template = data.templates.find((item) => item.id === appliedTemplateId);
+		if (!template) return;
+		subject = applyTags(template.subject);
+		body = applyTags(template.body);
+	});
 
 	function formatFileSize(bytes: number) {
 		if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))}KB`;
