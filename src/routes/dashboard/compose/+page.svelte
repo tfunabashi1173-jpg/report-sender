@@ -62,8 +62,6 @@
 			.replaceAll('{{today}}', formatToday())
 			.replaceAll('{site}', siteName)
 			.replaceAll('{{site}}', siteName)
-			.replaceAll('{現場名}', siteName)
-			.replaceAll('{{現場名}}', siteName)
 			.replaceAll('{floor}', selectedFloor)
 			.replaceAll('{{floor}}', selectedFloor)
 			.replaceAll('{%}', selectedPercent);
@@ -195,9 +193,9 @@
 				</div>
 			</div>
 			<label>
-				現場名
+				現場名（{'{site}'}）
 				<input bind:value={siteName} placeholder="例: 舟橋ビル改修工事" />
-				<small>件名・本文・定型文名の {'{site}'} / {'{現場名}'} に代入します。</small>
+				<small>ここに入力した値を、件名・本文・定型文名の {'{site}'} に代入します。</small>
 			</label>
 			<label>
 				定型文
@@ -406,6 +404,11 @@
 		color: #1f2937;
 		font-size: 12px;
 	}
+	.group-toggle:hover,
+	.group-toggle:hover strong,
+	.group-toggle:hover small {
+		color: #fff;
+	}
 	.group-members {
 		display: grid;
 		gap: 8px;
@@ -489,4 +492,9 @@
 	.error { border: 0; border-radius: 16px; background: #fff1f0; color: #b42318; }
 	.success { border: 0; border-radius: 16px; background: #ecfdf3; color: #067647; }
 	.empty, small, .row span, .row small, .list-head p, summary span, .tag-panel small, .tags span, header p, .status { color: #8b929d; }
+	.group-toggle:hover,
+	.group-toggle:hover strong,
+	.group-toggle:hover small {
+		color: #fff;
+	}
 </style>

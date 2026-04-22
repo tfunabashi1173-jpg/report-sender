@@ -38,7 +38,7 @@
 						</button>
 					{/each}
 				</div>
-				<small>{'{site}'} / {'{現場名}'} は現場名、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。タグはテンプレート名・件名・本文で使えます。</small>
+				<small>{'{site}'} はメール作成画面で入力する現場名、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。タグはテンプレート名・件名・本文で使えます。</small>
 			</div>
 			<form method="POST" action="?/save">
 				<input name="name" required placeholder={`テンプレート名 例: {site} 日次報告`} />
@@ -179,6 +179,10 @@
 		text-align: left;
 		padding: 10px;
 	}
+	.tags button:hover,
+	.tags button:hover span {
+		color: #fff;
+	}
 	.tags strong {
 		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 		font-size: 13px;
@@ -255,6 +259,10 @@
 	input:focus, textarea:focus, select:focus { outline: 2px solid rgba(31,41,55,.12); border-color: #cfd5df; }
 	button, .btn-primary, .btn-copy, .btn-share { border: 0; border-radius: 16px; background: #1f2937; color: #fff; font-weight: 700; }
 	button:hover, .btn-primary:hover, .btn-copy:hover, .btn-share:hover { background: #111827; }
+	.tags button:hover,
+	.tags button:hover span {
+		color: #fff;
+	}
 	.danger, .plain { background: #fff1f0 !important; color: #b42318 !important; }
 	.error { border: 0; border-radius: 16px; background: #fff1f0; color: #b42318; }
 	.success { border: 0; border-radius: 16px; background: #ecfdf3; color: #067647; }
