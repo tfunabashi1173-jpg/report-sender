@@ -13,11 +13,5 @@
 			"database_name": "report-sender",
 			"database_id": "049cd874-d7b5-4008-9e52-a3b2a27040e0"
 		}
-	],
-	"r2_buckets": [
-		{
-			"binding": "REPORT_ASSETS",
-			"bucket_name": "report-sender-assets"
-		}
 	]
 }

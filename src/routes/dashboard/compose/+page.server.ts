@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
-import { getSmtpSettings, sendReportMail } from '$lib/server/mailer';
+import { getSmtpSettings, sendReportMail, type MailAttachment } from '$lib/server/mailer';
 
 type Recipient = {
 	id: string;
@@ -82,36 +82,23 @@ function mergeRecipients(to: Recipient[], cc: Recipient[]) {
 	return [...merged.values()];
 }
 
-async function saveAttachments(
-	form: FormData,
-	locals: App.Locals,
-	bucket: App.Platform['env']['REPORT_ASSETS'] | undefined,
-	reportId: string,
-	now: string
-) {
-	if (!bucket) return;
+async function collectAttachments(form: FormData) {
 	const files = form.getAll('attachments').filter((value): value is File => value instanceof File && value.size > 0);
+	const attachments: MailAttachment[] = [];
 	for (const file of files) {
 		if (!file.type.startsWith('image/')) continue;
-		const id = crypto.randomUUID();
-		const key = `reports/${reportId}/${id}-${file.name}`;
-		await bucket.put(key, await file.arrayBuffer(), {
-			httpMetadata: { contentType: file.type || 'application/octet-stream' }
+		attachments.push({
+			fileName: file.name,
+			contentType: file.type || 'application/octet-stream',
+			bytes: new Uint8Array(await file.arrayBuffer())
 		});
-		await locals.db
-			.prepare(
-				`INSERT INTO report_attachments (id, report_id, r2_key, file_name, content_type, size, created_at)
-				 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
-			)
-			.bind(id, reportId, key, file.name, file.type || 'application/octet-stream', file.size, now)
-			.run();
 	}
+	return attachments;
 }
 
 async function saveReport(
 	request: Request,
 	locals: App.Locals,
-	bucket: App.Platform['env']['REPORT_ASSETS'] | undefined,
 	status: 'draft' | 'sent'
 ) {
 	const { user } = await requireDashboardUser(locals);
@@ -151,12 +138,11 @@ async function saveReport(
 			.bind(reportId, recipient.id, recipient.name, recipient.email, recipient.kind, now)
 			.run();
 	}
-	await saveAttachments(form, locals, bucket, reportId, now);
 
 	if (status === 'sent') {
 		try {
-			if (!bucket) throw new Error('R2ストレージ設定が未設定です');
-			const result = await sendReportMail(locals.db, bucket, reportId, recipients, subject, body);
+			const attachments = await collectAttachments(form);
+			const result = await sendReportMail(locals.db, recipients, subject, body, attachments);
 			await locals.db
 				.prepare(
 					`UPDATE reports
@@ -182,6 +168,6 @@ async function saveReport(
 }
 
 export const actions: Actions = {
-	draft: async ({ request, locals, platform }) => saveReport(request, locals, platform?.env.REPORT_ASSETS, 'draft'),
-	send: async ({ request, locals, platform }) => saveReport(request, locals, platform?.env.REPORT_ASSETS, 'sent')
+	draft: async ({ request, locals }) => saveReport(request, locals, 'draft'),
+	send: async ({ request, locals }) => saveReport(request, locals, 'sent')
 };

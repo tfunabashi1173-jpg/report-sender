@@ -85,7 +85,7 @@
 			<label class="attachment">
 				画像添付
 				<input name="attachments" type="file" accept="image/*" multiple />
-				<small>スマホではカメラまたはライブラリから選択できます。</small>
+				<small>スマホではカメラまたはライブラリから選択できます。画像は保存せず、送信時だけ添付します。</small>
 			</label>
 			{#if data.contacts.length === 0}
 				<p class="empty">送信先がありません。<a href="/dashboard/contacts">連絡先を追加</a>してください。</p>

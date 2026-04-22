@@ -31,21 +31,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.bind(report.id)
 		.all<{ name: string; email: string; kind: 'to' | 'cc' }>();
 
-	const attachments = await locals.db
-		.prepare('SELECT file_name AS fileName, content_type AS contentType, size FROM report_attachments WHERE report_id = ?1 ORDER BY file_name')
-		.bind(report.id)
-		.all<{ fileName: string; contentType: string; size: number }>();
-
 	return {
 		report,
 		recipients: results ?? [],
-		attachments: attachments.results ?? [],
 		mailConfigured: Boolean(await getSmtpSettings(locals.db))
 	};
 };
 
 export const actions: Actions = {
-	sendNow: async ({ params, locals, platform }) => {
+	sendNow: async ({ params, locals }) => {
 		const { user } = await requireDashboardUser(locals);
 		const report = await locals.db
 			.prepare('SELECT subject, body FROM reports WHERE id = ?1 AND created_by = ?2')
@@ -62,9 +56,7 @@ export const actions: Actions = {
 
 		const now = new Date().toISOString();
 		try {
-			const bucket = platform?.env.REPORT_ASSETS;
-			if (!bucket) throw new Error('R2ストレージ設定が未設定です');
-			const result = await sendReportMail(locals.db, bucket, params.id, recipients, report.subject, report.body);
+			const result = await sendReportMail(locals.db, recipients, report.subject, report.body);
 			await locals.db
 				.prepare(
 					`UPDATE reports

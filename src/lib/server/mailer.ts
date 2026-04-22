@@ -1,5 +1,5 @@
 import type { Socket } from 'cloudflare:sockets';
-import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import type { D1Database } from '@cloudflare/workers-types';
 import { bytesToBase64 } from '$lib/server/base64';
 
 export type SmtpSettings = {
@@ -178,32 +178,12 @@ async function connectSmtp(settings: SmtpSettings) {
 	return client;
 }
 
-async function loadAttachments(db: D1Database, bucket: R2Bucket, reportId: string) {
-	const { results } = await db
-		.prepare('SELECT r2_key AS r2Key, file_name AS fileName, content_type AS contentType FROM report_attachments WHERE report_id = ?1')
-		.bind(reportId)
-		.all<{ r2Key: string; fileName: string; contentType: string }>();
-
-	const attachments: MailAttachment[] = [];
-	for (const row of results ?? []) {
-		const object = await bucket.get(row.r2Key);
-		if (!object) continue;
-		attachments.push({
-			fileName: row.fileName,
-			contentType: row.contentType,
-			bytes: new Uint8Array(await object.arrayBuffer())
-		});
-	}
-	return attachments;
-}
-
 export async function sendReportMail(
 	db: D1Database,
-	bucket: R2Bucket,
-	reportId: string,
 	recipients: MailRecipient[],
 	subject: string,
-	body: string
+	body: string,
+	attachments: MailAttachment[] = []
 ) {
 	const settings = await getSmtpSettings(db);
 	if (!settings) throw new Error('SMTP送信設定が未設定です');
@@ -225,7 +205,6 @@ export async function sendReportMail(
 			await client.command(`RCPT TO:<${recipient.email}>`, [250, 251]);
 		}
 		await client.command('DATA', [354]);
-		const attachments = await loadAttachments(db, bucket, reportId);
 		await client.writeData(buildMessage(settings, to, cc, subject, body, attachments));
 		await client.command('QUIT', [221]);
 	} finally {
