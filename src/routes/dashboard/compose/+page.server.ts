@@ -201,6 +201,7 @@ async function saveReport(
 		}
 	}
 
+	if (status === 'sent') redirect(303, '/dashboard/compose/sent');
 	redirect(303, `/dashboard/history/${reportId}`);
 }
 
