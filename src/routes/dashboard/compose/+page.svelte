@@ -4,8 +4,13 @@
 	let selectedFloor = $state('');
 	let subject = $state('');
 	let body = $state('');
+	let attachmentInput: HTMLInputElement;
+	let attachmentStatus = $state('');
+	let compressingAttachments = $state(false);
 
 	const floors = Array.from({ length: 60 }, (_, index) => `${index + 1}階`);
+	const imageMaxSide = 1600;
+	const imageQuality = 0.72;
 
 	function formatToday() {
 		const now = new Date();
@@ -26,6 +31,79 @@
 		if (!template) return;
 		subject = applyTags(template.subject);
 		body = applyTags(template.body);
+	}
+
+	function formatFileSize(bytes: number) {
+		if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))}KB`;
+		return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+	}
+
+	function replaceExtension(name: string) {
+		const base = name.replace(/\.[^.]+$/, '');
+		return `${base || 'image'}.jpg`;
+	}
+
+	async function decodeImage(file: File) {
+		if ('createImageBitmap' in window) {
+			return createImageBitmap(file, { imageOrientation: 'from-image' });
+		}
+
+		const url = URL.createObjectURL(file);
+		try {
+			const image = new Image();
+			image.decoding = 'async';
+			await new Promise<void>((resolve, reject) => {
+				image.onload = () => resolve();
+				image.onerror = () => reject(new Error('画像を読み込めませんでした'));
+				image.src = url;
+			});
+			return image;
+		} finally {
+			URL.revokeObjectURL(url);
+		}
+	}
+
+	async function compressImage(file: File) {
+		if (!file.type.startsWith('image/') || file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
+
+		const image = await decodeImage(file);
+		const scale = Math.min(1, imageMaxSide / Math.max(image.width, image.height));
+		const width = Math.max(1, Math.round(image.width * scale));
+		const height = Math.max(1, Math.round(image.height * scale));
+		const canvas = document.createElement('canvas');
+		canvas.width = width;
+		canvas.height = height;
+		canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
+		if ('close' in image && typeof image.close === 'function') image.close();
+
+		const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', imageQuality));
+		if (!blob || blob.size >= file.size) return file;
+		return new File([blob], replaceExtension(file.name), { type: 'image/jpeg', lastModified: Date.now() });
+	}
+
+	async function compressAttachments() {
+		const files = Array.from(attachmentInput?.files ?? []);
+		if (files.length === 0) {
+			attachmentStatus = '';
+			return;
+		}
+
+		compressingAttachments = true;
+		attachmentStatus = '画像を圧縮しています...';
+		try {
+			const compressed = await Promise.all(files.map((file) => compressImage(file)));
+			const transfer = new DataTransfer();
+			for (const file of compressed) transfer.items.add(file);
+			attachmentInput.files = transfer.files;
+
+			const before = files.reduce((total, file) => total + file.size, 0);
+			const after = compressed.reduce((total, file) => total + file.size, 0);
+			attachmentStatus = `添付画像を ${formatFileSize(before)} から ${formatFileSize(after)} に圧縮しました。`;
+		} catch {
+			attachmentStatus = '画像圧縮に失敗しました。元画像のまま添付します。';
+		} finally {
+			compressingAttachments = false;
+		}
 	}
 </script>
 
@@ -111,8 +189,11 @@
 			</div>
 			<label class="attachment">
 				画像添付
-				<input name="attachments" type="file" accept="image/*" multiple />
-				<small>スマホではカメラまたはライブラリから選択できます。画像は保存せず、送信時だけ添付します。</small>
+				<input bind:this={attachmentInput} onchange={compressAttachments} name="attachments" type="file" accept="image/*" multiple />
+				<small>スマホではカメラまたはライブラリから選択できます。選択後に自動で圧縮し、保存せず送信時だけ添付します。</small>
+				{#if attachmentStatus}
+					<small class:working={compressingAttachments}>{attachmentStatus}</small>
+				{/if}
 			</label>
 			{#if data.contacts.length === 0}
 				<p class="empty">送信先がありません。<a href="/dashboard/contacts">連絡先を追加</a>してください。</p>
@@ -121,7 +202,7 @@
 
 		<div class="actions">
 			<button formaction="?/draft" class="secondary">下書き保存</button>
-			<button formaction="?/send" class="primary" disabled={!data.mailConfigured}>サーバーから送信</button>
+			<button formaction="?/send" class="primary" disabled={!data.mailConfigured || compressingAttachments}>サーバーから送信</button>
 		</div>
 	</form>
 </main>
@@ -169,6 +250,7 @@
 	.check span { display: grid; gap: 2px; }
 	.attachment { padding-top: 14px; border-top: 1px solid rgba(23,33,27,.12); }
 	small, .empty { color: #69746d; }
+	.working { color: #93621f; }
 	.actions {
 		position: sticky;
 		bottom: 12px;
