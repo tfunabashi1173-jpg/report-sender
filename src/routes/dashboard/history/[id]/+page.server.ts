@@ -2,9 +2,11 @@ import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
 import { getSmtpSettings, sendReportMail } from '$lib/server/mailer';
+import { deleteExpiredReports } from '$lib/server/reports';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const { user } = await requireDashboardUser(locals);
+	await deleteExpiredReports(locals.db, user.id);
 	const report = await locals.db
 		.prepare(
 			`SELECT id, subject, body, status, created_at AS createdAt, sent_at AS sentAt,

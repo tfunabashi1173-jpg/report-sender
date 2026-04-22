@@ -1,8 +1,10 @@
 import type { PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
+import { deleteExpiredReports } from '$lib/server/reports';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = await requireDashboardUser(locals);
+	await deleteExpiredReports(locals.db, user.id);
 	const { results } = await locals.db
 		.prepare(
 			`SELECT reports.id, reports.subject, reports.status, reports.created_at AS createdAt,
@@ -10,6 +12,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			 FROM reports
 			 LEFT JOIN report_recipients ON report_recipients.report_id = reports.id
 			 WHERE reports.created_by = ?1
+			   AND datetime(COALESCE(reports.sent_at, reports.updated_at, reports.created_at)) >= datetime('now', '-30 days')
 			 GROUP BY reports.id
 			 ORDER BY datetime(reports.updated_at) DESC`
 		)

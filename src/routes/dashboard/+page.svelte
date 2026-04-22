@@ -12,7 +12,7 @@
 		{ label: '連絡先', href: '/dashboard/contacts', description: 'メールアドレス登録' },
 		{ label: '宛先リスト', href: '/dashboard/lists', description: 'TO/CC用のグループ管理' },
 		{ label: '定型文', href: '/dashboard/templates', description: '件名と本文の雛形' },
-		{ label: '送信済み', href: '/dashboard/history', description: '送信履歴と添付確認' }
+		{ label: '送信済み', href: '/dashboard/history', description: '30日分の履歴' }
 	];
 </script>
 
@@ -21,7 +21,7 @@
 		<div>
 			<p class="eyebrow">Report Sender</p>
 			<h1>{data.user?.displayName ?? data.profile?.displayName ?? 'ユーザー'}さん</h1>
-			<p class="sub">宛先を選び、定型文を整え、報告メールを送信記録として残します。</p>
+			<p class="sub">宛先を選び、定型文を整え、報告メールを送信します。履歴は30日間保管します。</p>
 		</div>
 		<button class="logout" onclick={logout}>ログアウト</button>
 	</section>

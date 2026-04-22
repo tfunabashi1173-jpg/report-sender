@@ -7,11 +7,12 @@
 	<header>
 		<p class="eyebrow">History</p>
 		<h1>送信履歴</h1>
+		<p>履歴は30日間だけ保管します。</p>
 	</header>
 
 	<section class="list">
 		{#if data.reports.length === 0}
-			<p class="empty">履歴はまだありません。</p>
+			<p class="empty">30日以内の履歴はありません。</p>
 		{:else}
 			{#each data.reports as report}
 				<a class="row" href={`/dashboard/history/${report.id}`}>
