@@ -61,24 +61,10 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 		adminUserId = crypto.randomUUID();
 		const email = `admin-${crypto.randomUUID()}@report-sender.local`;
 
-		const hasLegacyLoginIdColumn = Boolean(
-			await locals.db
-				.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name = 'login_id' LIMIT 1")
-				.first()
-		);
-
 		await locals.db.batch([
 			locals.db
-				.prepare(
-					hasLegacyLoginIdColumn
-						? 'INSERT INTO users (id, email, phone, login_id, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)'
-						: 'INSERT INTO users (id, email, phone, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5)'
-				)
-				.bind(
-					...(hasLegacyLoginIdColumn
-						? [adminUserId, email, null, normalizedName, passwordHash, now]
-						: [adminUserId, email, null, passwordHash, now])
-				),
+				.prepare('INSERT INTO users (id, email, phone, login_id, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
+				.bind(adminUserId, email, null, normalizedName, passwordHash, now),
 			locals.db
 				.prepare('INSERT INTO profiles (id, display_name, role, created_at) VALUES (?1, ?2, ?3, ?4)')
 				.bind(adminUserId, normalizedName, 'admin', now)

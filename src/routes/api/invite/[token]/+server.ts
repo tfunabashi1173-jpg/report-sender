@@ -54,24 +54,10 @@ export const POST: RequestHandler = async ({ params, request, locals, cookies, u
 		return json({ error: 'その名前は既に使用されています' }, { status: 409 });
 	}
 
-	const hasLegacyLoginIdColumn = Boolean(
-		await locals.db
-			.prepare("SELECT 1 FROM pragma_table_info('users') WHERE name = 'login_id' LIMIT 1")
-			.first()
-	);
-
 	await locals.db.batch([
 		locals.db
-			.prepare(
-				hasLegacyLoginIdColumn
-					? 'INSERT INTO users (id, email, phone, login_id, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)'
-					: 'INSERT INTO users (id, email, phone, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5)'
-			)
-			.bind(
-				...(hasLegacyLoginIdColumn
-					? [userId, placeholderEmail, null, normalizedName, passwordHash, now]
-					: [userId, placeholderEmail, null, passwordHash, now])
-			),
+			.prepare('INSERT INTO users (id, email, phone, login_id, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
+			.bind(userId, placeholderEmail, null, normalizedName, passwordHash, now),
 		locals.db
 			.prepare('INSERT INTO profiles (id, display_name, role, created_at) VALUES (?1, ?2, ?3, ?4)')
 			.bind(userId, normalizedName, 'member', now),
