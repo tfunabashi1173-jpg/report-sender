@@ -5,6 +5,7 @@ import type { AppUser } from '$lib/server/auth';
 export type Profile = {
 	role: 'admin' | 'member';
 	displayName: string | null;
+	organization: string | null;
 };
 
 export async function requireUser(locals: App.Locals) {
@@ -15,7 +16,7 @@ export async function requireUser(locals: App.Locals) {
 
 export async function getProfile(db: D1Database, userId: string) {
 	return (await db
-		.prepare('SELECT role, display_name AS displayName FROM profiles WHERE id = ?1')
+		.prepare('SELECT role, display_name AS displayName, organization FROM profiles WHERE id = ?1')
 		.bind(userId)
 		.first()) as Profile | null;
 }

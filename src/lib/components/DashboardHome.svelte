@@ -80,6 +80,10 @@
 				<button class="avatar" aria-label="アカウント">{initial}</button>
 				<div class="account-menu">
 					<span>{displayName}</span>
+					<a href="/dashboard/settings/profile">ユーザー設定</a>
+					{#if isAdmin}
+						<a href="/dashboard/settings/mail">メール設定</a>
+					{/if}
 					<button onclick={logout}>ログアウト</button>
 				</div>
 			</div>
@@ -226,11 +230,14 @@
 		font-size: 12px;
 		padding: 4px 6px;
 	}
+	.account-menu a,
 	.account-menu button {
 		border: none;
 		border-radius: 12px;
 		background: #f3f4f6;
 		color: #24262b;
+		font: inherit;
+		text-decoration: none;
 		padding: 10px;
 		text-align: left;
 	}
