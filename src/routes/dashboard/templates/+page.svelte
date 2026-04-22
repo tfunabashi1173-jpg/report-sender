@@ -108,32 +108,20 @@
 				{#if newBody}
 					<pre class="body-preview">{previewTags(newBody)}</pre>
 				{/if}
-				<div class="list-picker">
-					<strong>メイン宛先リスト</strong>
+				<label class="list-picker">
+					<strong>メーリングリスト</strong>
 					{#if data.lists.length === 0}
 						<small>宛先リストがありません。</small>
 					{:else}
-						{#each data.lists as list}
-							<label class="check">
-								<input type="checkbox" name="toListIds" value={list.id} />
-								<span>{list.name}</span>
-							</label>
-						{/each}
+						<select name="mailingListId">
+							<option value="">選択しない</option>
+							{#each data.lists as list}
+								<option value={list.id}>{list.name}</option>
+							{/each}
+						</select>
+						<small>リスト内のTO/CC設定を使って送信します。</small>
 					{/if}
-				</div>
-				<div class="list-picker">
-					<strong>CCリスト</strong>
-					{#if data.lists.length === 0}
-						<small>宛先リストがありません。</small>
-					{:else}
-						{#each data.lists as list}
-							<label class="check">
-								<input type="checkbox" name="ccListIds" value={list.id} />
-								<span>{list.name}</span>
-							</label>
-						{/each}
-					{/if}
-				</div>
+				</label>
 				<button>保存する</button>
 			</form>
 		</section>
@@ -162,32 +150,20 @@
 								本文
 								<textarea name="body" rows="12" required placeholder={`{site} / {floor} / {%} が使えます`}>{template.body}</textarea>
 							</label>
-							<div class="list-picker">
-								<strong>メイン宛先リスト</strong>
+							<label class="list-picker">
+								<strong>メーリングリスト</strong>
 								{#if data.lists.length === 0}
 									<small>宛先リストがありません。</small>
 								{:else}
-									{#each data.lists as list}
-										<label class="check">
-											<input type="checkbox" name="toListIds" value={list.id} checked={template.toListIds.includes(list.id)} />
-											<span>{list.name}</span>
-										</label>
-									{/each}
+									<select name="mailingListId">
+										<option value="">選択しない</option>
+										{#each data.lists as list}
+											<option value={list.id} selected={template.mailingListId === list.id}>{list.name}</option>
+										{/each}
+									</select>
+									<small>リスト内のTO/CC設定を使って送信します。</small>
 								{/if}
-							</div>
-							<div class="list-picker">
-								<strong>CCリスト</strong>
-								{#if data.lists.length === 0}
-									<small>宛先リストがありません。</small>
-								{:else}
-									{#each data.lists as list}
-										<label class="check">
-											<input type="checkbox" name="ccListIds" value={list.id} checked={template.ccListIds.includes(list.id)} />
-											<span>{list.name}</span>
-										</label>
-									{/each}
-								{/if}
-							</div>
+							</label>
 							<button>更新する</button>
 						</form>
 						<form method="POST" action="?/delete">
@@ -337,16 +313,7 @@
 		font-size: 13px;
 		font-weight: 800;
 	}
-	.check {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin: 0;
-	}
-	.check input {
-		width: auto;
-	}
-	input, textarea {
+	input, textarea, select {
 		box-sizing: border-box;
 		width: 100%;
 		border: 1px solid rgba(23,33,27,.18);

@@ -56,15 +56,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return {
 		siteName: siteSetting?.value ?? '',
 		lists: lists.results ?? [],
-		templates: (templates.results ?? []).map((template) => ({
-			id: template.id,
-			name: template.name,
-			subject: template.subject,
-			body: template.body,
-			toListIds: parseListIds(template.toListIdsJson),
-			ccListIds: parseListIds(template.ccListIdsJson),
-			updatedAt: template.updatedAt
-		}))
+		templates: (templates.results ?? []).map((template) => {
+			const toListIds = parseListIds(template.toListIdsJson);
+			const ccListIds = parseListIds(template.ccListIdsJson);
+			return {
+				id: template.id,
+				name: template.name,
+				subject: template.subject,
+				body: template.body,
+				toListIds,
+				ccListIds,
+				mailingListId: toListIds[0] ?? ccListIds[0] ?? '',
+				updatedAt: template.updatedAt
+			};
+		})
 	};
 };
 
@@ -91,8 +96,9 @@ export const actions: Actions = {
 		const name = String(form.get('name') ?? '').trim();
 		const subject = String(form.get('subject') ?? '').trim();
 		const body = String(form.get('body') ?? '').trim();
-		const toListIds = await filterOwnedListIds(locals.db, user.id, form.getAll('toListIds').map(String));
-		const ccListIds = await filterOwnedListIds(locals.db, user.id, form.getAll('ccListIds').map(String));
+		const mailingListIds = await filterOwnedListIds(locals.db, user.id, [String(form.get('mailingListId') ?? '')]);
+		const toListIds = mailingListIds;
+		const ccListIds: string[] = [];
 		if (!name || !subject || !body) return fail(400, { error: '名前・件名・本文は必須です' });
 
 		const now = new Date().toISOString();
