@@ -11,6 +11,8 @@
 	let displayName = $state('');
 	let password = $state('');
 	let passwordLoading = $state(false);
+	let showPasswordLogin = $state(false);
+	let showRecovery = $state(false);
 	let displayNameInputEl = $state<HTMLInputElement | null>(null);
 	let passwordInputEl = $state<HTMLInputElement | null>(null);
 
@@ -105,6 +107,18 @@
 		}
 	}
 
+	function openPasswordLogin() {
+		error = '';
+		showRecovery = false;
+		showPasswordLogin = true;
+	}
+
+	function openRecovery() {
+		error = '';
+		showPasswordLogin = false;
+		showRecovery = true;
+	}
+
 	function syncAutofilledValues() {
 		if (displayNameInputEl && displayNameInputEl.value !== displayName) {
 			displayName = displayNameInputEl.value;
@@ -190,64 +204,67 @@
 		<p class="error">{error}</p>
 	{/if}
 
-	<button class="btn-primary" onclick={loginWithPasskey} disabled={loading}>
-		{loading ? '認証中...' : 'Face ID / パスキーでログイン'}
-	</button>
-
 	{#if hasAdmin}
-		<p class="hint">パスキーが使えない場合は、名前とパスワードでログインしてください。</p>
+		<button class="btn-primary" onclick={loginWithPasskey} disabled={loading}>
+			{loading ? '認証中...' : 'Face ID / パスキーでログイン'}
+		</button>
 
-		<section class="setup">
-			<h2>パスワードログイン</h2>
-			<form class="password-form" onsubmit={(e) => { e.preventDefault(); void loginWithPassword(); }}>
+		<div class="fallback-actions">
+			<button type="button" class="link-button" onclick={openPasswordLogin}>名前とパスワードでログイン</button>
+			<button type="button" class="link-button" onclick={openRecovery}>管理者を再設定</button>
+		</div>
+
+		{#if showPasswordLogin}
+			<section class="setup">
+				<h2>パスワードログイン</h2>
+				<form class="password-form" onsubmit={(e) => { e.preventDefault(); void loginWithPassword(); }}>
+					<label>
+						名前
+						<input
+							type="text"
+							bind:this={displayNameInputEl}
+							bind:value={displayName}
+							placeholder="山田 太郎"
+							autocomplete="username"
+							oninput={syncAutofilledValues}
+							onchange={syncAutofilledValues}
+						/>
+					</label>
+					<label>
+						ログインパスワード
+						<input
+							type="password"
+							bind:this={passwordInputEl}
+							bind:value={password}
+							placeholder="8文字以上"
+							autocomplete="current-password"
+							oninput={syncAutofilledValues}
+							onchange={syncAutofilledValues}
+						/>
+					</label>
+					<button type="submit" class="btn-secondary" disabled={passwordLoading}>
+						{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
+					</button>
+				</form>
+			</section>
+		{/if}
+
+		{#if showRecovery}
+			<section class="setup">
+				<h2>管理者を再設定</h2>
 				<label>
-					名前
-					<input
-						type="text"
-						bind:this={displayNameInputEl}
-						bind:value={displayName}
-						placeholder="山田 太郎"
-						autocomplete="username"
-						disabled={passkeyInProgress}
-						tabindex={passkeyInProgress ? -1 : 0}
-						oninput={syncAutofilledValues}
-						onchange={syncAutofilledValues}
-					/>
+					管理者名
+					<input type="text" bind:value={recoveryName} placeholder="管理者名" />
 				</label>
 				<label>
-					ログインパスワード
-					<input
-						type="password"
-						bind:this={passwordInputEl}
-						bind:value={password}
-						placeholder="8文字以上"
-						autocomplete="current-password"
-						disabled={passkeyInProgress}
-						tabindex={passkeyInProgress ? -1 : 0}
-						oninput={syncAutofilledValues}
-						onchange={syncAutofilledValues}
-					/>
+					新しいパスワード
+					<input type="password" bind:value={recoveryPassword} placeholder="8文字以上" />
 				</label>
-				<button type="submit" class="btn-secondary" disabled={passwordLoading || passkeyInProgress}>
-					{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
+				<button class="btn-secondary" onclick={recoverAdmin} disabled={recoveryLoading || !recoveryName.trim() || !recoveryPassword}>
+					{recoveryLoading ? '更新中...' : '管理者を再設定してログイン'}
 				</button>
-			</form>
-		</section>
-
-		<section class="setup">
-			<h2>管理者復旧（パスキー全滅時）</h2>
-			<label>
-				管理者名
-				<input type="text" bind:value={recoveryName} placeholder="管理者名" />
-			</label>
-			<label>
-				新しいパスワード
-				<input type="password" bind:value={recoveryPassword} placeholder="8文字以上" />
-			</label>
-			<button class="btn-secondary" onclick={recoverAdmin} disabled={recoveryLoading || !recoveryName.trim() || !recoveryPassword}>
-				{recoveryLoading ? '復旧中...' : '管理者を復旧してログイン'}
-			</button>
-		</section>
+			</section>
+		{/if}
 	{:else}
 		<p class="hint">初回起動です。初期管理者を作成してください。</p>
 
@@ -325,6 +342,20 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+	}
+	.fallback-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.link-button {
+		padding: 4px;
+		background: transparent;
+		color: #555;
+		border: none;
+		font-size: 13px;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 	.setup input {
 		padding: 10px;
