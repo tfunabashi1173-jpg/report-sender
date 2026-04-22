@@ -5,6 +5,7 @@
 		{ label: 'ホーム', href: '/', icon: 'home' },
 		{ label: '作成', href: '/dashboard/compose', icon: 'compose' },
 		{ label: '連絡先', href: '/dashboard/contacts', icon: 'contacts' },
+		{ label: 'リスト', href: '/dashboard/lists', icon: 'lists' },
 		{ label: '定型文', href: '/dashboard/templates', icon: 'template' },
 		{ label: '履歴', href: '/dashboard/history', icon: 'history' }
 	];
@@ -18,6 +19,8 @@
 {#snippet Icon(name: string)}
 	{#if name === 'contacts'}
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" /><circle cx="9.5" cy="7" r="4" /><path d="M20 8v6" /><path d="M23 11h-6" /></svg>
+	{:else if name === 'lists'}
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13" /><path d="M8 12h13" /><path d="M8 18h13" /><path d="M3 6h.01" /><path d="M3 12h.01" /><path d="M3 18h.01" /></svg>
 	{:else if name === 'template'}
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M8 13h8" /><path d="M8 17h5" /></svg>
 	{:else if name === 'history'}
@@ -46,7 +49,7 @@
 		left: 0;
 		z-index: 20;
 		display: grid;
-		grid-template-columns: repeat(5, 1fr);
+		grid-template-columns: repeat(6, 1fr);
 		gap: 2px;
 		border-top: 1px solid #eceff3;
 		background: rgba(255, 255, 255, 0.94);
@@ -70,7 +73,7 @@
 			left: 50%;
 			transform: translateX(-50%);
 			bottom: 18px;
-			width: min(560px, calc(100% - 36px));
+			width: min(640px, calc(100% - 36px));
 			border: 1px solid #eceff3;
 			border-radius: 24px;
 			box-shadow: 0 20px 60px rgba(16, 24, 40, 0.12);
