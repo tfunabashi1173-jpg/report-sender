@@ -15,7 +15,7 @@
 		<button class="btn-link" onclick={logout}>ログアウト</button>
 	</header>
 
-	<p class="user">ログイン中: {data.user?.phone ?? data.user?.email ?? data.user?.id}</p>
+	<p class="user">ログイン中: {data.user?.displayName ?? data.profile?.displayName ?? data.user?.id}</p>
 
 	{#if data.profile?.role === 'admin'}
 		<section class="admin-section">

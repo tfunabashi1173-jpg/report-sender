@@ -15,6 +15,7 @@ export type AppUser = {
 	id: string;
 	email: string | null;
 	phone: string | null;
+	displayName: string | null;
 };
 
 export function isSecureRequest(url: URL) {
@@ -113,7 +114,12 @@ export async function safeGetSession(
 	}
 
 	const user = (await db
-		.prepare('SELECT id, email, phone FROM users WHERE id = ?1')
+		.prepare(
+			`SELECT users.id, users.email, users.phone, profiles.display_name AS displayName
+			 FROM users
+			 LEFT JOIN profiles ON profiles.id = users.id
+			 WHERE users.id = ?1`
+		)
 		.bind(session.userId)
 		.first()) as AppUser | null;
 
