@@ -124,15 +124,6 @@
 	</section>
 </main>
 
-<nav class="bottom-nav" aria-label="主要ナビゲーション">
-	{#each nav as item}
-		<a class:active={item.active} href={item.href}>
-			{@render Icon(item.icon)}
-			<span>{item.label}</span>
-		</a>
-	{/each}
-</nav>
-
 <style>
 	:global(body) {
 		margin: 0;
@@ -359,37 +350,6 @@
 		color: #8b929d;
 		white-space: nowrap;
 	}
-	.bottom-nav {
-		position: fixed;
-		right: 0;
-		bottom: 0;
-		left: 0;
-		z-index: 20;
-		display: grid;
-		grid-template-columns: repeat(5, 1fr);
-		gap: 2px;
-		border-top: 1px solid #eceff3;
-		background: rgba(255, 255, 255, 0.94);
-		backdrop-filter: blur(18px);
-		padding: 8px max(12px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
-	}
-	.bottom-nav a {
-		display: grid;
-		place-items: center;
-		gap: 3px;
-		color: #9aa0aa;
-		font-size: 11px;
-		font-weight: 600;
-		text-decoration: none;
-		padding: 6px 2px;
-	}
-	.bottom-nav svg {
-		width: 21px;
-		height: 21px;
-	}
-	.bottom-nav a.active {
-		color: #1f2937;
-	}
 	@media (max-width: 720px) {
 		.dashboard {
 			padding-top: 22px;
@@ -416,15 +376,5 @@
 	@media (min-width: 920px) {
 		.dashboard {
 			padding-bottom: 112px;
-		}
-		.bottom-nav {
-			left: 50%;
-			transform: translateX(-50%);
-			bottom: 18px;
-			width: min(560px, calc(100% - 36px));
-			border: 1px solid #eceff3;
-			border-radius: 24px;
-			box-shadow: 0 20px 60px rgba(16, 24, 40, 0.12);
-		}
-	}
+		}	}
 </style>
