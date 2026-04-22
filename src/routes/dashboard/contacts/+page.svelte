@@ -1,5 +1,10 @@
 <script lang="ts">
 	let { data, form } = $props();
+	let expandedContactId = $state<string | null>(null);
+
+	function toggleContact(id: string) {
+		expandedContactId = expandedContactId === id ? null : id;
+	}
 </script>
 
 <main class="page">
@@ -52,32 +57,52 @@
 			{:else}
 				{#each data.contacts as contact}
 					<article class="row">
-						<form class="edit-form" method="POST" action="?/update">
-							<input type="hidden" name="id" value={contact.id} />
-							<label>
-								名前
-								<input name="name" required value={contact.name} />
-							</label>
-							<label>
-								メールアドレス
-								<input name="email" type="email" required value={contact.email} />
-							</label>
-							<label>
-								所属
-								<input name="organization" value={contact.organization ?? ''} placeholder="学校・団体・会社など" />
-							</label>
-							<label class="wide">
-								メモ
-								<textarea name="note" rows="3" placeholder="送信時に確認したい補足">{contact.note ?? ''}</textarea>
-							</label>
-							<div class="row-actions">
-								<button type="submit">保存</button>
+						<button
+							class="contact-summary"
+							type="button"
+							aria-expanded={expandedContactId === contact.id}
+							onclick={() => toggleContact(contact.id)}
+						>
+							<span class="contact-main">
+								<strong>{contact.name}</strong>
+								<span>{contact.email}</span>
+							</span>
+							<span class="contact-meta">
+								{contact.organization || '所属なし'}
+								<span class="chevron">{expandedContactId === contact.id ? '閉じる' : '編集'}</span>
+							</span>
+						</button>
+
+						{#if expandedContactId === contact.id}
+							<div class="contact-panel">
+								<form class="edit-form" method="POST" action="?/update">
+									<input type="hidden" name="id" value={contact.id} />
+									<label>
+										名前
+										<input name="name" required value={contact.name} />
+									</label>
+									<label>
+										メールアドレス
+										<input name="email" type="email" required value={contact.email} />
+									</label>
+									<label>
+										所属
+										<input name="organization" value={contact.organization ?? ''} placeholder="学校・団体・会社など" />
+									</label>
+									<label class="wide">
+										メモ
+										<textarea name="note" rows="3" placeholder="送信時に確認したい補足">{contact.note ?? ''}</textarea>
+									</label>
+									<div class="row-actions">
+										<button type="submit">保存</button>
+									</div>
+								</form>
+								<form class="delete-form" method="POST" action="?/delete">
+									<input type="hidden" name="id" value={contact.id} />
+									<button class="danger" aria-label={`${contact.name}を削除`}>削除</button>
+								</form>
 							</div>
-						</form>
-						<form class="delete-form" method="POST" action="?/delete">
-							<input type="hidden" name="id" value={contact.id} />
-							<button class="danger" aria-label={`${contact.name}を削除`}>削除</button>
-						</form>
+						{/if}
 					</article>
 				{/each}
 			{/if}
@@ -207,16 +232,50 @@
 	}
 	.row {
 		display: grid;
-		gap: 12px;
-		padding: 14px;
+		overflow: hidden;
 	}
-	.row div {
+	.contact-summary {
+		display: flex;
+		width: 100%;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		border: 0;
+		border-radius: 24px;
+		background: transparent;
+		color: inherit;
+		padding: 16px;
+		text-align: left;
+	}
+	.contact-summary:hover {
+		background: #f8fafc;
+	}
+	.contact-main,
+	.contact-meta {
 		display: grid;
 		gap: 3px;
 		min-width: 0;
 	}
-	.row form {
-		flex: 0 0 auto;
+	.contact-main span,
+	.contact-meta {
+		color: #69746d;
+		font-size: 13px;
+		word-break: break-all;
+	}
+	.contact-meta {
+		justify-items: end;
+		text-align: right;
+	}
+	.chevron {
+		color: #1f2937;
+		font-size: 12px;
+		font-weight: 800;
+	}
+	.contact-panel {
+		display: grid;
+		gap: 12px;
+		border-top: 1px solid #eef1f5;
+		padding: 16px;
 	}
 	.row .danger {
 		min-width: 72px;
@@ -253,11 +312,6 @@
 		.card {
 			position: sticky;
 			top: 20px;
-		}
-		.row {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
-			align-items: start;
 		}
 		.edit-form {
 			display: grid;
