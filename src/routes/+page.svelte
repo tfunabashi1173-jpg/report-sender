@@ -1,13 +1,9 @@
 <script lang="ts">
+	import BottomNav from '$lib/components/BottomNav.svelte';
+	import DashboardHome from '$lib/components/DashboardHome.svelte';
+
 	let { data } = $props();
 </script>
 
-<main>
-	<h1>報告メール送信システム</h1>
-	{#if data.session}
-		<p>ログイン中: {data.user?.displayName ?? data.user?.id}</p>
-		<a href="/dashboard">ダッシュボードへ</a>
-	{:else}
-		<a href="/login">ログイン</a>
-	{/if}
-</main>
+<DashboardHome {data} />
+<BottomNav />
