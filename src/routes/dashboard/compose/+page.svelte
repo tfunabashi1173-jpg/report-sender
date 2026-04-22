@@ -102,6 +102,46 @@
 		return `${base || 'image'}.jpg`;
 	}
 
+	function selectedTemplateText() {
+		const template = data.templates.find((item) => item.id === (appliedTemplateId || selectedTemplateId));
+		return template ? `${template.name}\n${template.subject}\n${template.body}` : `${subject}\n${body}`;
+	}
+
+	function imageStampLines() {
+		const source = selectedTemplateText();
+		const lines = [data.userName || ''];
+		if (source.includes('{today}') || source.includes('{{today}}')) lines.push(formatToday());
+		if ((source.includes('{floor}') || source.includes('{{floor}}')) && selectedFloor) lines.push(selectedFloor);
+		if (source.includes('{%}') && selectedPercent) lines.push(selectedPercent);
+		return lines.filter((line) => line.trim().length > 0);
+	}
+
+	function drawImageStamp(context: CanvasRenderingContext2D, width: number, height: number) {
+		const lines = imageStampLines();
+		if (lines.length === 0) return;
+
+		const fontSize = Math.max(24, Math.round(Math.min(width, height) * 0.032));
+		const padding = Math.round(fontSize * 0.75);
+		const lineHeight = Math.round(fontSize * 1.35);
+		context.font = `700 ${fontSize}px "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif`;
+		const textWidth = Math.max(...lines.map((line) => context.measureText(line).width));
+		const boxWidth = Math.ceil(textWidth + padding * 2);
+		const boxHeight = lineHeight * lines.length + padding * 2;
+		const x = Math.max(padding, width - boxWidth - padding);
+		const y = Math.max(padding, height - boxHeight - padding);
+
+		context.fillStyle = 'rgba(0, 0, 0, 0.48)';
+		context.fillRect(x, y, boxWidth, boxHeight);
+		context.fillStyle = '#fff';
+		context.shadowColor = 'rgba(0, 0, 0, 0.65)';
+		context.shadowBlur = 3;
+		context.shadowOffsetY = 1;
+		lines.forEach((line, index) => {
+			context.fillText(line, x + padding, y + padding + fontSize + index * lineHeight);
+		});
+		context.shadowColor = 'transparent';
+	}
+
 	async function decodeImage(file: File) {
 		if ('createImageBitmap' in window) {
 			return createImageBitmap(file, { imageOrientation: 'from-image' });
@@ -132,7 +172,9 @@
 		const canvas = document.createElement('canvas');
 		canvas.width = width;
 		canvas.height = height;
-		canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
+		const context = canvas.getContext('2d');
+		context?.drawImage(image, 0, 0, width, height);
+		if (context) drawImageStamp(context, width, height);
 		if ('close' in image && typeof image.close === 'function') image.close();
 
 		const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', imageQuality));
@@ -157,7 +199,7 @@
 
 			const before = files.reduce((total, file) => total + file.size, 0);
 			const after = compressed.reduce((total, file) => total + file.size, 0);
-			attachmentStatus = `添付画像を ${formatFileSize(before)} から ${formatFileSize(after)} に圧縮しました。`;
+			attachmentStatus = `添付画像に必要な文字を入れ、${formatFileSize(before)} から ${formatFileSize(after)} に圧縮しました。`;
 		} catch {
 			attachmentStatus = '画像圧縮に失敗しました。元画像のまま添付します。';
 		} finally {

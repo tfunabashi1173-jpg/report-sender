@@ -11,7 +11,7 @@ type Recipient = {
 };
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const { user } = await requireDashboardUser(locals);
+	const { user, profile } = await requireDashboardUser(locals);
 	const [contacts, lists, templates, mailSettings, siteSetting] = await Promise.all([
 		locals.db
 			.prepare(
@@ -43,6 +43,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	return {
 		siteName: siteSetting?.value ?? '',
+		userName: profile?.displayName ?? user.displayName ?? '',
 		contacts: contacts.results ?? [],
 		lists: lists.results ?? [],
 		templates: (templates.results ?? []).map((template) => ({

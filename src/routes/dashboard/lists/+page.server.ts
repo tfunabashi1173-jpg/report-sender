@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user } = await requireDashboardUser(locals);
 	const [contacts, lists, members] = await Promise.all([
 		locals.db
@@ -49,6 +49,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	]);
 
 	return {
+		openListId: url.searchParams.get('open') ?? '',
 		contacts: contacts.results ?? [],
 		lists: (lists.results ?? []).map((list) => ({
 			...list,
@@ -58,6 +59,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		members: members.results ?? []
 	};
 };
+
+function listUrl(listId?: string) {
+	return listId ? `/dashboard/lists?open=${encodeURIComponent(listId)}` : '/dashboard/lists';
+}
 
 export const actions: Actions = {
 	create: async ({ request, locals }) => {
@@ -96,7 +101,7 @@ export const actions: Actions = {
 			.run();
 		if (result.meta.changes === 0) return fail(404, { error: 'リストが見つかりません' });
 
-		redirect(303, '/dashboard/lists');
+		redirect(303, listUrl(id));
 	},
 	addMember: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
@@ -120,7 +125,7 @@ export const actions: Actions = {
 			)
 			.bind(listId, contactId, kind, new Date().toISOString())
 			.run();
-		redirect(303, '/dashboard/lists');
+		redirect(303, listUrl(listId));
 	},
 	removeMember: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
@@ -135,7 +140,7 @@ export const actions: Actions = {
 			)
 			.bind(listId, user.id, contactId)
 			.run();
-		redirect(303, '/dashboard/lists');
+		redirect(303, listUrl(listId));
 	},
 	delete: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);

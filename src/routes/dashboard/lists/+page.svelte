@@ -4,7 +4,7 @@
 	let { data, form } = $props();
 	let selectedOrganizations = $state<Record<string, string>>({});
 	let selectedKinds = $state<Record<string, 'to' | 'cc'>>({});
-	let expandedListId = $state<string | null>(null);
+	let expandedListId = $state<string | null>(data.openListId || null);
 	const defaultsStorageKey = 'report-sender:recipient-list-defaults';
 
 	function membersFor(listId: string) {
