@@ -4,6 +4,7 @@
 
 	const tags = [
 		{ label: '今日の日付', token: '{today}', description: '例: 4月22日 21時10分' },
+		{ label: '現場名', token: '{site}', description: 'メール作成時に入力した現場名を代入' },
 		{ label: 'フロア', token: '{floor}', description: 'メール作成時に選んだ階を代入' },
 		{ label: '割合', token: '{%}', description: 'メール作成時に選んだ10〜100%を代入' }
 	];
@@ -37,12 +38,12 @@
 						</button>
 					{/each}
 				</div>
-				<small>{'{today}'} は現在日時、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。</small>
+				<small>{'{site}'} / {'{現場名}'} は現場名、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。タグはテンプレート名・件名・本文で使えます。</small>
 			</div>
 			<form method="POST" action="?/save">
-				<input name="name" required placeholder="テンプレート名 例: 日次報告" />
-				<input name="subject" required placeholder="件名 例: 本日の活動報告" />
-				<textarea name="body" bind:value={newBody} rows="16" required placeholder={`本文を入力。例: {today} / {floor} / {%}`}></textarea>
+				<input name="name" required placeholder={`テンプレート名 例: {site} 日次報告`} />
+				<input name="subject" required placeholder={`件名 例: {site} 本日の活動報告`} />
+				<textarea name="body" bind:value={newBody} rows="16" required placeholder={`本文を入力。例: {site} / {floor} / {%}`}></textarea>
 				<div class="list-picker">
 					<strong>メイン宛先リスト</strong>
 					{#if data.lists.length === 0}
@@ -95,7 +96,7 @@
 							</label>
 							<label>
 								本文
-								<textarea name="body" rows="12" required placeholder={`{today} / {floor} / {%} が使えます`}>{template.body}</textarea>
+								<textarea name="body" rows="12" required placeholder={`{site} / {floor} / {%} が使えます`}>{template.body}</textarea>
 							</label>
 							<div class="list-picker">
 								<strong>メイン宛先リスト</strong>
