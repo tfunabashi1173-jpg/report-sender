@@ -164,7 +164,7 @@ async function saveReport(
 	if (status === 'sent') {
 		try {
 			const attachments = await collectAttachments(form);
-			const result = await sendReportMail(locals.db, recipients, subject, body, attachments);
+			const result = await sendReportMail(locals.db, recipients, subject, body, attachments, { actorUserId: user.id });
 			await locals.db
 				.prepare(
 					`UPDATE reports

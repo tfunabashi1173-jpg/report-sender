@@ -22,6 +22,12 @@ export async function ensureRuntimeSchema(db: D1Database) {
 
 		await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_login_id ON users(login_id)').run();
 
+		const profileColumns = await db.prepare("SELECT name FROM pragma_table_info('profiles')").all<{ name: string }>();
+		const profileColumnNames = new Set((profileColumns.results ?? []).map((r) => r.name));
+		if (!profileColumnNames.has('organization')) {
+			await db.prepare('ALTER TABLE profiles ADD COLUMN organization TEXT').run();
+		}
+
 		await db
 			.prepare(
 				`CREATE TABLE IF NOT EXISTS contacts (

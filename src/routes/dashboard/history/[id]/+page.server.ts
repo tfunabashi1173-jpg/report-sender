@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	sendNow: async ({ params, locals }) => {
-		await requireDashboardUser(locals);
+		const { user } = await requireDashboardUser(locals);
 		const report = await locals.db
 			.prepare('SELECT subject, body FROM reports WHERE id = ?1')
 			.bind(params.id)
@@ -58,7 +58,7 @@ export const actions: Actions = {
 
 		const now = new Date().toISOString();
 		try {
-			const result = await sendReportMail(locals.db, recipients, report.subject, report.body);
+			const result = await sendReportMail(locals.db, recipients, report.subject, report.body, [], { actorUserId: user.id });
 			await locals.db
 				.prepare(
 					`UPDATE reports

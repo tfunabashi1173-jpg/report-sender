@@ -79,6 +79,10 @@
 				>{data.settings?.signature ?? ''}</textarea>
 			</label>
 			<p class="hint">送信時に本文末尾へ自動で追加します。本文との間には空行を1つ入れます。</p>
+			<div class="tag-help">
+				<span>{'{loginName}'}: ログイン名</span>
+				<span>{'{company}'}: ログイン名と同名の連絡先から取得した所属</span>
+			</div>
 			<button>保存する</button>
 		</form>
 	</section>
@@ -126,6 +130,7 @@
 	input, textarea, select { box-sizing: border-box; width: 100%; border: 1px solid rgba(32,35,31,.18); border-radius: 12px; padding: 12px; font: inherit; background: white; }
 	textarea { resize: vertical; line-height: 1.6; }
 	.hint { margin: -4px 0 0; color: #61675f; font-size: 13px; line-height: 1.7; }
+	.tag-help { display: grid; gap: 6px; border-radius: 14px; background: #f6f7f9; padding: 12px; color: #61675f; font-size: 13px; }
 	button { border: none; border-radius: 12px; background: #334f3c; color: white; font-weight: 900; padding: 14px; }
 	button:disabled { opacity: .55; cursor: not-allowed; }
 	.secondary { background: #20231f; }

@@ -26,6 +26,10 @@ export type MailAttachment = {
 	bytes: Uint8Array;
 };
 
+type SendMailOptions = {
+	actorUserId?: string;
+};
+
 export async function getSmtpSettings(db: D1Database) {
 	return (await db
 		.prepare('SELECT host, port, secure_mode, username, password, from_email, from_name, reply_to, signature FROM smtp_settings WHERE id = ?1')
@@ -77,6 +81,53 @@ function formatMimeParameter(name: string, value: string) {
 
 function normalizeNewlines(value: string) {
 	return value.replace(/\r?\n/g, '\r\n');
+}
+
+function replaceSignatureTags(signature: string, loginName: string, company: string) {
+	return signature
+		.replaceAll('{loginName}', loginName)
+		.replaceAll('{{loginName}}', loginName)
+		.replaceAll('{ログイン名}', loginName)
+		.replaceAll('{{ログイン名}}', loginName)
+		.replaceAll('{company}', company)
+		.replaceAll('{{company}}', company)
+		.replaceAll('{会社名}', company)
+		.replaceAll('{{会社名}}', company);
+}
+
+async function resolveSignature(
+	db: D1Database,
+	userId: string | undefined,
+	signature: string | null | undefined
+) {
+	const trimmedSignature = signature?.trim();
+	if (!trimmedSignature || !userId) return trimmedSignature ?? '';
+
+	const profile = await db
+		.prepare('SELECT display_name AS displayName, organization FROM profiles WHERE id = ?1')
+		.bind(userId)
+		.first<{ displayName: string | null; organization: string | null }>();
+	const loginName = profile?.displayName?.trim() ?? '';
+	let company = profile?.organization?.trim() ?? '';
+
+	if (!company && loginName) {
+		const contact = await db
+			.prepare(
+				`SELECT organization
+				 FROM contacts
+				 WHERE created_by = ?1
+				   AND name = ?2
+				   AND organization IS NOT NULL
+				   AND organization != ''
+				 ORDER BY updated_at DESC
+				 LIMIT 1`
+			)
+			.bind(userId, loginName)
+			.first<{ organization: string }>();
+		company = contact?.organization?.trim() ?? '';
+	}
+
+	return replaceSignatureTags(trimmedSignature, loginName, company);
 }
 
 function appendSignature(body: string, signature: string | null | undefined) {
@@ -249,7 +300,7 @@ export async function testSmtpConnection(db: D1Database) {
 	}
 }
 
-export async function sendTestMail(db: D1Database, toEmail: string) {
+export async function sendTestMail(db: D1Database, toEmail: string, actorUserId?: string) {
 	const settings = await getSmtpSettings(db);
 	if (!settings) throw new Error('SMTP送信設定が未設定です');
 	const recipient = {
@@ -262,7 +313,9 @@ export async function sendTestMail(db: D1Database, toEmail: string) {
 		db,
 		[recipient],
 		'【Report Sender】SMTPテストメール',
-		`Report SenderからのSMTPテストメールです。\n\n送信日時: ${now}\n送信元: ${settings.from_email}\n\nこのメールが届いていれば、SMTP送信設定は動作しています。`
+		`Report SenderからのSMTPテストメールです。\n\n送信日時: ${now}\n送信元: ${settings.from_email}\n\nこのメールが届いていれば、SMTP送信設定は動作しています。`,
+		[],
+		{ actorUserId }
 	);
 }
 
@@ -271,7 +324,8 @@ export async function sendReportMail(
 	recipients: MailRecipient[],
 	subject: string,
 	body: string,
-	attachments: MailAttachment[] = []
+	attachments: MailAttachment[] = [],
+	options: SendMailOptions = {}
 ) {
 	const settings = await getSmtpSettings(db);
 	if (!settings) throw new Error('SMTP送信設定が未設定です');
@@ -283,13 +337,15 @@ export async function sendReportMail(
 	const client = await connectSmtp(settings);
 	try {
 		await authenticateSmtp(client, settings);
+		const resolvedSignature = await resolveSignature(db, options.actorUserId, settings.signature);
+		const messageSettings = { ...settings, signature: resolvedSignature };
 
 		await client.command(`MAIL FROM:<${settings.from_email}>`, [250]);
 		for (const recipient of [...to, ...cc]) {
 			await client.command(`RCPT TO:<${recipient.email}>`, [250, 251]);
 		}
 		await client.command('DATA', [354]);
-		const message = buildMessage(settings, to, cc, subject, body, attachments);
+		const message = buildMessage(messageSettings, to, cc, subject, body, attachments);
 		await client.writeData(message.raw);
 		await client.command('QUIT', [221]);
 		return { count: to.length + cc.length, messageId: message.messageId };

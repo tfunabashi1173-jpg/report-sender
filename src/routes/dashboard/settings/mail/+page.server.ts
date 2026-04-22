@@ -89,14 +89,14 @@ export const actions: Actions = {
 		}
 	},
 	sendTest: async ({ request, locals }) => {
-		await requireAdmin(locals);
+		const { user } = await requireAdmin(locals);
 		const form = await request.formData();
 		const testEmail = String(form.get('testEmail') ?? '').trim();
 		if (!testEmail || !testEmail.includes('@')) {
 			return fail(400, { error: 'テスト送信先メールアドレスを入力してください' });
 		}
 		try {
-			await sendTestMail(locals.db, testEmail);
+			await sendTestMail(locals.db, testEmail, user.id);
 			redirect(303, '/dashboard/settings/mail?status=test-sent');
 		} catch (e: any) {
 			return fail(400, { error: e?.message ?? 'テストメール送信に失敗しました' });
