@@ -10,6 +10,7 @@
 	let displayName = $state('');
 	let password = $state('');
 	let passwordLoading = $state(false);
+	let autoPasswordLoginAttempted = $state(false);
 
 	let setupName = $state('');
 	let setupPassword = $state('');
@@ -86,6 +87,24 @@
 			passwordLoading = false;
 		}
 	}
+
+	$effect(() => {
+		if (!hasAdmin || passwordLoading) return;
+		const ready = displayName.trim().length > 0 && password.length > 0;
+		if (!ready) {
+			autoPasswordLoginAttempted = false;
+			return;
+		}
+		if (autoPasswordLoginAttempted) return;
+
+		// Mobile autofill/passkey suggestion can populate fields without submit.
+		// Auto-continue once when both values appear.
+		const timer = setTimeout(() => {
+			autoPasswordLoginAttempted = true;
+			void loginWithPassword();
+		}, 250);
+		return () => clearTimeout(timer);
+	});
 
 	async function createFirstAdmin() {
 		if (!setupName.trim() || !setupPassword) {
@@ -199,17 +218,19 @@
 
 		<section class="setup">
 			<h2>パスワードログイン</h2>
-			<label>
-				名前
-				<input type="text" bind:value={displayName} placeholder="山田 太郎" />
-			</label>
-			<label>
-				ログインパスワード
-				<input type="password" bind:value={password} placeholder="8文字以上" />
-			</label>
-			<button class="btn-secondary" onclick={loginWithPassword} disabled={passwordLoading || !displayName.trim() || !password}>
-				{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
-			</button>
+			<form class="password-form" onsubmit={(e) => { e.preventDefault(); void loginWithPassword(); }}>
+				<label>
+					名前
+					<input type="text" bind:value={displayName} placeholder="山田 太郎" autocomplete="username webauthn" />
+				</label>
+				<label>
+					ログインパスワード
+					<input type="password" bind:value={password} placeholder="8文字以上" autocomplete="current-password" />
+				</label>
+				<button type="submit" class="btn-secondary" disabled={passwordLoading || !displayName.trim() || !password}>
+					{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
+				</button>
+			</form>
 		</section>
 
 		<section class="setup">
@@ -298,6 +319,11 @@
 		flex-direction: column;
 		gap: 6px;
 		font-size: 13px;
+	}
+	.password-form {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
 	}
 	.setup input {
 		padding: 10px;
