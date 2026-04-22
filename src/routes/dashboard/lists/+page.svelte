@@ -1,6 +1,10 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	let { data, form } = $props();
 	let selectedOrganizations = $state<Record<string, string>>({});
+	let selectedKinds = $state<Record<string, 'to' | 'cc'>>({});
+	const defaultsStorageKey = 'report-sender:recipient-list-defaults';
 
 	function membersFor(listId: string) {
 		return data.members.filter((member) => member.listId === listId);
@@ -15,6 +19,48 @@
 		if (!organization) return [];
 		return data.contacts.filter((contact) => (contact.organization?.trim() || '所属なし') === organization);
 	}
+
+	function saveDefaults(listId: string) {
+		const current = JSON.parse(localStorage.getItem(defaultsStorageKey) ?? '{}') as Record<
+			string,
+			{ organization?: string; kind?: 'to' | 'cc' }
+		>;
+		current[listId] = {
+			organization: selectedOrganizations[listId] ?? '',
+			kind: selectedKinds[listId] ?? 'to'
+		};
+		localStorage.setItem(defaultsStorageKey, JSON.stringify(current));
+	}
+
+	function setOrganization(listId: string, event: Event) {
+		const value = event.currentTarget instanceof HTMLSelectElement ? event.currentTarget.value : '';
+		selectedOrganizations = { ...selectedOrganizations, [listId]: value };
+		saveDefaults(listId);
+	}
+
+	function setKind(listId: string, event: Event) {
+		const value = event.currentTarget instanceof HTMLSelectElement && event.currentTarget.value === 'cc' ? 'cc' : 'to';
+		selectedKinds = { ...selectedKinds, [listId]: value };
+		saveDefaults(listId);
+	}
+
+	onMount(() => {
+		try {
+			const saved = JSON.parse(localStorage.getItem(defaultsStorageKey) ?? '{}') as Record<
+				string,
+				{ organization?: string; kind?: 'to' | 'cc' }
+			>;
+			selectedOrganizations = Object.fromEntries(
+				data.lists.map((list) => [list.id, saved[list.id]?.organization ?? ''])
+			);
+			selectedKinds = Object.fromEntries(
+				data.lists.map((list) => [list.id, saved[list.id]?.kind === 'cc' ? 'cc' : 'to'])
+			);
+		} catch {
+			selectedOrganizations = {};
+			selectedKinds = {};
+		}
+	});
 </script>
 
 <main class="page">
@@ -63,7 +109,7 @@
 							<div class="recipient-row">
 								<label>
 									所属
-									<select bind:value={selectedOrganizations[list.id]} required>
+									<select value={selectedOrganizations[list.id] ?? ''} onchange={(event) => setOrganization(list.id, event)} required>
 										<option value="">所属を選択</option>
 										{#each organizations as organization}
 											<option value={organization}>{organization}</option>
@@ -81,7 +127,7 @@
 								</label>
 								<label>
 									区分
-									<select name="kind">
+									<select name="kind" value={selectedKinds[list.id] ?? 'to'} onchange={(event) => setKind(list.id, event)}>
 										<option value="to">TO</option>
 										<option value="cc">CC</option>
 									</select>
