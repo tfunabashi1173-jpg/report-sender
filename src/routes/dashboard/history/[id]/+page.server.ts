@@ -5,16 +5,16 @@ import { getSmtpSettings, sendReportMail } from '$lib/server/mailer';
 import { deleteExpiredReports } from '$lib/server/reports';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const { user } = await requireDashboardUser(locals);
-	await deleteExpiredReports(locals.db, user.id);
+	await requireDashboardUser(locals);
+	await deleteExpiredReports(locals.db);
 	const report = await locals.db
 		.prepare(
 			`SELECT id, subject, body, status, created_at AS createdAt, sent_at AS sentAt,
 			        delivery_status AS deliveryStatus, delivery_error AS deliveryError
 			 FROM reports
-			 WHERE id = ?1 AND created_by = ?2`
+			 WHERE id = ?1`
 		)
-		.bind(params.id, user.id)
+		.bind(params.id)
 		.first<{
 			id: string;
 			subject: string;
@@ -42,10 +42,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	sendNow: async ({ params, locals }) => {
-		const { user } = await requireDashboardUser(locals);
+		await requireDashboardUser(locals);
 		const report = await locals.db
-			.prepare('SELECT subject, body FROM reports WHERE id = ?1 AND created_by = ?2')
-			.bind(params.id, user.id)
+			.prepare('SELECT subject, body FROM reports WHERE id = ?1')
+			.bind(params.id)
 			.first<{ subject: string; body: string }>();
 		if (!report) error(404, '報告が見つかりません');
 		const recipients =
@@ -64,25 +64,25 @@ export const actions: Actions = {
 					`UPDATE reports
 					 SET status = 'sent', delivery_status = 'sent', delivery_error = NULL,
 					     provider_message_id = ?1, sent_at = ?2, updated_at = ?2
-					 WHERE id = ?3 AND created_by = ?4`
+					 WHERE id = ?3`
 				)
-				.bind(result.messageId, now, params.id, user.id)
+				.bind(result.messageId, now, params.id)
 				.run();
 		} catch (e: any) {
 			await locals.db
 				.prepare(
 					`UPDATE reports
 					 SET delivery_status = 'failed', delivery_error = ?1, updated_at = ?2
-					 WHERE id = ?3 AND created_by = ?4`
+					 WHERE id = ?3`
 				)
-				.bind(e?.message ?? '送信に失敗しました', now, params.id, user.id)
+				.bind(e?.message ?? '送信に失敗しました', now, params.id)
 				.run();
 		}
 		redirect(303, `/dashboard/history/${params.id}`);
 	},
 	delete: async ({ params, locals }) => {
-		const { user } = await requireDashboardUser(locals);
-		await locals.db.prepare('DELETE FROM reports WHERE id = ?1 AND created_by = ?2').bind(params.id, user.id).run();
+		await requireDashboardUser(locals);
+		await locals.db.prepare('DELETE FROM reports WHERE id = ?1').bind(params.id).run();
 		redirect(303, '/dashboard/history');
 	}
 };

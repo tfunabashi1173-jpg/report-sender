@@ -6,13 +6,13 @@ function retentionCutoffIso() {
 	return new Date(Date.now() - REPORT_RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 }
 
-export async function deleteExpiredReports(db: D1Database, userId: string) {
+export async function deleteExpiredReports(db: D1Database) {
 	const cutoff = retentionCutoffIso();
-	const oldReports = `SELECT id FROM reports WHERE created_by = ?1 AND datetime(COALESCE(sent_at, updated_at, created_at)) < datetime(?2)`;
+	const oldReports = `SELECT id FROM reports WHERE datetime(COALESCE(sent_at, updated_at, created_at)) < datetime(?1)`;
 
 	await db
 		.prepare(`DELETE FROM report_recipients WHERE report_id IN (${oldReports})`)
-		.bind(userId, cutoff)
+		.bind(cutoff)
 		.run();
 
 	const attachmentTable = await db
@@ -21,12 +21,12 @@ export async function deleteExpiredReports(db: D1Database, userId: string) {
 	if (attachmentTable) {
 		await db
 			.prepare(`DELETE FROM report_attachments WHERE report_id IN (${oldReports})`)
-			.bind(userId, cutoff)
+			.bind(cutoff)
 			.run();
 	}
 
 	await db
 		.prepare(`DELETE FROM reports WHERE id IN (${oldReports})`)
-		.bind(userId, cutoff)
+		.bind(cutoff)
 		.run();
 }
