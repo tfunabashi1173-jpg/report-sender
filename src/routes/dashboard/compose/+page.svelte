@@ -1,14 +1,31 @@
 <script lang="ts">
 	let { data, form } = $props();
 	let selectedTemplateId = $state('');
+	let selectedFloor = $state('');
 	let subject = $state('');
 	let body = $state('');
+
+	const floors = Array.from({ length: 60 }, (_, index) => `${index + 1}階`);
+
+	function formatToday() {
+		const now = new Date();
+		const pad = (value: number) => String(value).padStart(2, '0');
+		return `${now.getMonth() + 1}月${now.getDate()}日 ${pad(now.getHours())}時${pad(now.getMinutes())}分`;
+	}
+
+	function applyTags(value: string) {
+		return value
+			.replaceAll('{today}', formatToday())
+			.replaceAll('{{today}}', formatToday())
+			.replaceAll('{floor}', selectedFloor)
+			.replaceAll('{{floor}}', selectedFloor);
+	}
 
 	function applyTemplate() {
 		const template = data.templates.find((item) => item.id === selectedTemplateId);
 		if (!template) return;
-		subject = template.subject;
-		body = template.body;
+		subject = applyTags(template.subject);
+		body = applyTags(template.body);
 	}
 </script>
 
@@ -40,6 +57,16 @@
 					</select>
 					<button type="button" class="sub-button" onclick={applyTemplate}>反映</button>
 				</div>
+			</label>
+			<label>
+				フロア
+				<select bind:value={selectedFloor}>
+					<option value="">選択しない</option>
+					{#each floors as floor}
+						<option value={floor}>{floor}</option>
+					{/each}
+				</select>
+				<small>定型文内の {'{floor}'} に代入します。</small>
 			</label>
 			<label>
 				件名

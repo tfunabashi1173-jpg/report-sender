@@ -7,7 +7,6 @@
 	<header>
 		<p class="eyebrow">History</p>
 		<h1>送信履歴</h1>
-		<p>履歴は30日間だけ保管します。</p>
 	</header>
 
 	<section class="list">

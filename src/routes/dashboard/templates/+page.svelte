@@ -1,5 +1,15 @@
 <script lang="ts">
 	let { data, form } = $props();
+	let newBody = $state('');
+
+	const tags = [
+		{ label: '今日の日付', token: '{today}', description: '例: 4月22日 21時10分' },
+		{ label: 'フロア', token: '{floor}', description: 'メール作成時に選んだ階を代入' }
+	];
+
+	function appendTag(token: string) {
+		newBody = `${newBody}${newBody ? '\n' : ''}${token}`;
+	}
 </script>
 
 <main class="page">
@@ -16,10 +26,22 @@
 	<div class="workspace">
 		<section class="editor">
 			<h2>新規作成</h2>
+			<div class="tag-panel">
+				<p>使えるタグ</p>
+				<div class="tags">
+					{#each tags as tag}
+						<button type="button" onclick={() => appendTag(tag.token)}>
+							<strong>{tag.token}</strong>
+							<span>{tag.label}</span>
+						</button>
+					{/each}
+				</div>
+				<small>{'{today}'} は現在日時、{'{floor}'} は選択したフロアに置換されます。</small>
+			</div>
 			<form method="POST" action="?/save">
 				<input name="name" required placeholder="テンプレート名 例: 日次報告" />
 				<input name="subject" required placeholder="件名 例: 本日の活動報告" />
-				<textarea name="body" rows="16" required placeholder="本文を入力。{name} などの差し込み文字はそのまま残せます。"></textarea>
+				<textarea name="body" bind:value={newBody} rows="16" required placeholder={`本文を入力。例: {today} / {floor}`}></textarea>
 				<button>保存する</button>
 			</form>
 		</section>
@@ -46,7 +68,7 @@
 							</label>
 							<label>
 								本文
-								<textarea name="body" rows="12" required>{template.body}</textarea>
+								<textarea name="body" rows="12" required placeholder={`{today} や {floor} が使えます`}>{template.body}</textarea>
 							</label>
 							<button>更新する</button>
 						</form>
@@ -77,6 +99,40 @@
 	}
 	.workspace { display: grid; gap: 16px; align-items: start; }
 	h2 { margin: 0 0 14px; font-size: 18px; }
+	.tag-panel {
+		display: grid;
+		gap: 10px;
+		margin-bottom: 14px;
+		padding: 14px;
+		border-radius: 18px;
+		background: rgba(23,33,27,.05);
+	}
+	.tag-panel p {
+		margin: 0;
+		font-size: 13px;
+		font-weight: 800;
+	}
+	.tags {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+	.tags button {
+		display: grid;
+		gap: 3px;
+		background: white;
+		color: #17211b;
+		text-align: left;
+		padding: 10px;
+	}
+	.tags strong {
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 13px;
+	}
+	.tags span, .tag-panel small {
+		color: #69746d;
+		font-size: 12px;
+	}
 	form { display: grid; gap: 10px; margin-top: 10px; }
 	label { display: grid; gap: 6px; font-weight: 700; font-size: 13px; }
 	input, textarea {
