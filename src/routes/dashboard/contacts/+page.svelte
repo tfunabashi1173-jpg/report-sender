@@ -158,6 +158,7 @@
 	.row {
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
 		gap: 12px;
 		padding: 14px;
 	}
@@ -165,6 +166,12 @@
 		display: grid;
 		gap: 3px;
 		min-width: 0;
+	}
+	.row form {
+		flex: 0 0 auto;
+	}
+	.row .danger {
+		min-width: 72px;
 	}
 	.row span,
 	.row small,
@@ -192,16 +199,11 @@
 		}
 		.row {
 			display: grid;
-			grid-template-columns: minmax(10rem, 1.1fr) minmax(14rem, 1.2fr) auto;
+			grid-template-columns: minmax(0, 1fr) auto;
 			align-items: center;
 		}
 		.row div {
-			display: contents;
-		}
-		.row strong,
-		.row span,
-		.row small {
-			min-width: 0;
+			display: grid;
 		}
 		.row form {
 			justify-self: end;
