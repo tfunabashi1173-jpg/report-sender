@@ -6,6 +6,8 @@
 	let selectedPercent = $state('');
 	let selectedToListIds = $state<string[]>([]);
 	let selectedCcListIds = $state<string[]>([]);
+	let openToOrganizations = $state<string[]>([]);
+	let openCcOrganizations = $state<string[]>([]);
 	let subject = $state('');
 	let body = $state('');
 	let attachmentInput: HTMLInputElement;
@@ -21,6 +23,30 @@
 	];
 	const imageMaxSide = 1600;
 	const imageQuality = 0.72;
+	const contactGroups = $derived(groupContactsByOrganization(data.contacts));
+
+	function groupContactsByOrganization(
+		contacts: Array<{ id: string; name: string; email: string; organization: string | null }>
+	) {
+		const groups = new Map<string, { name: string; contacts: typeof contacts }>();
+		for (const contact of contacts) {
+			const name = contact.organization?.trim() || '所属なし';
+			if (!groups.has(name)) groups.set(name, { name, contacts: [] });
+			groups.get(name)?.contacts.push(contact);
+		}
+		return [...groups.values()];
+	}
+
+	function toggleOrganization(kind: 'to' | 'cc', name: string) {
+		const current = kind === 'to' ? openToOrganizations : openCcOrganizations;
+		const next = current.includes(name) ? current.filter((item) => item !== name) : [...current, name];
+		if (kind === 'to') openToOrganizations = next;
+		else openCcOrganizations = next;
+	}
+
+	function isOrganizationOpen(kind: 'to' | 'cc', name: string) {
+		return (kind === 'to' ? openToOrganizations : openCcOrganizations).includes(name);
+	}
 
 	function formatToday() {
 		const now = new Date();
@@ -208,11 +234,24 @@
 						<span>リスト: {list.name}</span>
 					</label>
 				{/each}
-				{#each data.contacts as contact}
-					<label class="check">
-						<input type="checkbox" name="toContactIds" value={contact.id} />
-						<span>{contact.name}<small>{contact.email}</small></span>
-					</label>
+				{#each contactGroups as group}
+					<div class="recipient-group">
+						<button type="button" class="group-toggle" onclick={() => toggleOrganization('to', group.name)}>
+							<span>{group.name}</span>
+							<small>{group.contacts.length}名</small>
+							<strong>{isOrganizationOpen('to', group.name) ? '閉じる' : '開く'}</strong>
+						</button>
+						{#if isOrganizationOpen('to', group.name)}
+							<div class="group-members">
+								{#each group.contacts as contact}
+									<label class="check">
+										<input type="checkbox" name="toContactIds" value={contact.id} />
+										<span>{contact.name}<small>{contact.email}</small></span>
+									</label>
+								{/each}
+							</div>
+						{/if}
+					</div>
 				{/each}
 			</div>
 			<h2 class="cc-title">CC</h2>
@@ -223,11 +262,24 @@
 						<span>リスト: {list.name}</span>
 					</label>
 				{/each}
-				{#each data.contacts as contact}
-					<label class="check">
-						<input type="checkbox" name="ccContactIds" value={contact.id} />
-						<span>{contact.name}<small>{contact.email}</small></span>
-					</label>
+				{#each contactGroups as group}
+					<div class="recipient-group">
+						<button type="button" class="group-toggle" onclick={() => toggleOrganization('cc', group.name)}>
+							<span>{group.name}</span>
+							<small>{group.contacts.length}名</small>
+							<strong>{isOrganizationOpen('cc', group.name) ? '閉じる' : '開く'}</strong>
+						</button>
+						{#if isOrganizationOpen('cc', group.name)}
+							<div class="group-members">
+								{#each group.contacts as contact}
+									<label class="check">
+										<input type="checkbox" name="ccContactIds" value={contact.id} />
+										<span>{contact.name}<small>{contact.email}</small></span>
+									</label>
+								{/each}
+							</div>
+						{/if}
+					</div>
 				{/each}
 			</div>
 			<label class="attachment">
@@ -312,6 +364,37 @@
 	}
 	.template-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 	.checks { display: grid; gap: 8px; }
+	.recipient-group {
+		display: grid;
+		gap: 8px;
+	}
+	.group-toggle {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		border-radius: 16px;
+		background: #f8fafc;
+		color: #24262b;
+		padding: 12px;
+		text-align: left;
+	}
+	.group-toggle span {
+		overflow: hidden;
+		font-weight: 750;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.group-toggle strong {
+		color: #1f2937;
+		font-size: 12px;
+	}
+	.group-members {
+		display: grid;
+		gap: 8px;
+		padding-left: 10px;
+	}
 	.check {
 		display: flex;
 		grid-template-columns: auto 1fr;

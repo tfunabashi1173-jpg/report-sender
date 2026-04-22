@@ -7,13 +7,21 @@ type Recipient = {
 	id: string;
 	name: string;
 	email: string;
+	organization: string | null;
 };
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = await requireDashboardUser(locals);
 	const [contacts, lists, templates, mailSettings] = await Promise.all([
 		locals.db
-			.prepare('SELECT id, name, email FROM contacts WHERE created_by = ?1 ORDER BY name COLLATE NOCASE')
+			.prepare(
+				`SELECT id, name, email, organization
+				 FROM contacts
+				 WHERE created_by = ?1
+				 ORDER BY CASE WHEN organization IS NULL OR organization = '' THEN 1 ELSE 0 END,
+				          organization COLLATE NOCASE,
+				          name COLLATE NOCASE`
+			)
 			.bind(user.id)
 			.all<Recipient>(),
 		locals.db
