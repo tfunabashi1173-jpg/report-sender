@@ -40,6 +40,23 @@
 				</div>
 				<small>{'{site}'} はメール作成画面で入力する現場名、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。タグはテンプレート名・件名・本文で使えます。</small>
 			</div>
+			<div class="tag-settings">
+				<p>タグの設定場所</p>
+				<dl>
+					<div>
+						<dt>{'{site}'}</dt>
+						<dd>メール作成画面の「現場名」に入力します。現場ごとに変わるため、定型文ページでは値を固定保存しません。</dd>
+					</div>
+					<div>
+						<dt>{'{floor}'}</dt>
+						<dd>メール作成画面の「フロア」で選択します。</dd>
+					</div>
+					<div>
+						<dt>{'{%}'}</dt>
+						<dd>メール作成画面の「割合」で10〜100%を選択します。</dd>
+					</div>
+				</dl>
+			</div>
 			<form method="POST" action="?/save">
 				<input name="name" required placeholder={`テンプレート名 例: {site} 日次報告`} />
 				<input name="subject" required placeholder={`件名 例: {site} 本日の活動報告`} />
@@ -190,6 +207,43 @@
 	.tags span, .tag-panel small {
 		color: #69746d;
 		font-size: 12px;
+	}
+	.tag-settings {
+		display: grid;
+		gap: 10px;
+		margin: 0 0 14px;
+		border-radius: 18px;
+		background: #f8fafc;
+		padding: 14px;
+	}
+	.tag-settings p {
+		margin: 0;
+		color: #24262b;
+		font-size: 13px;
+		font-weight: 800;
+	}
+	.tag-settings dl {
+		display: grid;
+		gap: 8px;
+		margin: 0;
+	}
+	.tag-settings dl div {
+		display: grid;
+		grid-template-columns: 74px 1fr;
+		gap: 10px;
+		align-items: start;
+	}
+	.tag-settings dt {
+		margin: 0;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 13px;
+		font-weight: 800;
+	}
+	.tag-settings dd {
+		margin: 0;
+		color: #69746d;
+		font-size: 12px;
+		line-height: 1.6;
 	}
 	form { display: grid; gap: 10px; margin-top: 10px; }
 	label { display: grid; gap: 6px; font-weight: 700; font-size: 13px; }
