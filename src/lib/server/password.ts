@@ -1,4 +1,4 @@
-const PBKDF2_ITERATIONS = 210000;
+const PBKDF2_ITERATIONS = 100000;
 const SALT_BYTES = 16;
 const HASH_BITS = 256;
 
@@ -55,6 +55,10 @@ export async function verifyPassword(password: string, storedHash: string) {
 
 	const salt = fromBase64(saltBase64);
 	const expectedHash = fromBase64(hashBase64);
-	const actualHash = await derive(password, salt, iterations);
-	return timingSafeEqual(actualHash, expectedHash);
+	try {
+		const actualHash = await derive(password, salt, iterations);
+		return timingSafeEqual(actualHash, expectedHash);
+	} catch {
+		return false;
+	}
 }
