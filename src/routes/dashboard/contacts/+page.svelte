@@ -52,14 +52,29 @@
 			{:else}
 				{#each data.contacts as contact}
 					<article class="row">
-						<div>
-							<strong>{contact.name}</strong>
-							<span>{contact.email}</span>
-							{#if contact.organization}
-								<small>{contact.organization}</small>
-							{/if}
-						</div>
-						<form method="POST" action="?/delete">
+						<form class="edit-form" method="POST" action="?/update">
+							<input type="hidden" name="id" value={contact.id} />
+							<label>
+								名前
+								<input name="name" required value={contact.name} />
+							</label>
+							<label>
+								メールアドレス
+								<input name="email" type="email" required value={contact.email} />
+							</label>
+							<label>
+								所属
+								<input name="organization" value={contact.organization ?? ''} placeholder="学校・団体・会社など" />
+							</label>
+							<label class="wide">
+								メモ
+								<textarea name="note" rows="3" placeholder="送信時に確認したい補足">{contact.note ?? ''}</textarea>
+							</label>
+							<div class="row-actions">
+								<button type="submit">保存</button>
+							</div>
+						</form>
+						<form class="delete-form" method="POST" action="?/delete">
 							<input type="hidden" name="id" value={contact.id} />
 							<button class="danger" aria-label={`${contact.name}を削除`}>削除</button>
 						</form>
@@ -191,9 +206,7 @@
 		color: white;
 	}
 	.row {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
+		display: grid;
 		gap: 12px;
 		padding: 14px;
 	}
@@ -207,6 +220,15 @@
 	}
 	.row .danger {
 		min-width: 72px;
+	}
+	.edit-form {
+		display: grid;
+		gap: 12px;
+	}
+	.row-actions,
+	.delete-form {
+		display: flex;
+		justify-content: flex-end;
 	}
 	.row span,
 	.row small,
@@ -235,12 +257,17 @@
 		.row {
 			display: grid;
 			grid-template-columns: minmax(0, 1fr) auto;
-			align-items: center;
+			align-items: start;
 		}
-		.row div {
+		.edit-form {
 			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+			align-items: end;
 		}
-		.row form {
+		.edit-form .wide {
+			grid-column: 1 / 4;
+		}
+		.delete-form {
 			justify-self: end;
 		}
 	}
