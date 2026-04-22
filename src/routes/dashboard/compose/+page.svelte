@@ -6,6 +6,8 @@
 	let selectedPercent = $state('');
 	let selectedToListIds = $state<string[]>([]);
 	let selectedCcListIds = $state<string[]>([]);
+	let selectedToContactIds = $state<string[]>([]);
+	let selectedCcContactIds = $state<string[]>([]);
 	let openToOrganizations = $state<string[]>([]);
 	let openCcOrganizations = $state<string[]>([]);
 	let subject = $state('');
@@ -78,6 +80,8 @@
 		body = applyTags(template.body);
 		selectedToListIds = [...template.toListIds];
 		selectedCcListIds = [...template.ccListIds];
+		selectedToContactIds = [];
+		selectedCcContactIds = [];
 	}
 
 	$effect(() => {
@@ -252,7 +256,7 @@
 							<div class="group-members">
 								{#each group.contacts as contact}
 									<label class="check">
-										<input type="checkbox" name="toContactIds" value={contact.id} />
+										<input bind:group={selectedToContactIds} type="checkbox" name="toContactIds" value={contact.id} />
 										<span>{contact.name}<small>{contact.email}</small></span>
 									</label>
 								{/each}
@@ -280,7 +284,7 @@
 							<div class="group-members">
 								{#each group.contacts as contact}
 									<label class="check">
-										<input type="checkbox" name="ccContactIds" value={contact.id} />
+										<input bind:group={selectedCcContactIds} type="checkbox" name="ccContactIds" value={contact.id} />
 										<span>{contact.name}<small>{contact.email}</small></span>
 									</label>
 								{/each}
