@@ -20,57 +20,59 @@
 		<p class="error">{form.error}</p>
 	{/if}
 
-	<section class="card">
-		<h2>新しいリスト</h2>
-		<form method="POST" action="?/create">
-			<input name="name" required placeholder="例: 保護者全体" />
-			<textarea name="description" rows="2" placeholder="用途や対象"></textarea>
-			<button>リストを作成</button>
-		</form>
-	</section>
+	<div class="workspace">
+		<section class="card">
+			<h2>新しいリスト</h2>
+			<form method="POST" action="?/create">
+				<input name="name" required placeholder="例: 保護者全体" />
+				<textarea name="description" rows="5" placeholder="用途や対象"></textarea>
+				<button>リストを作成</button>
+			</form>
+		</section>
 
-	<section class="lists">
-		{#if data.lists.length === 0}
-			<p class="empty">宛先リストはまだありません。</p>
-		{:else}
-			{#each data.lists as list}
-				<article class="list-card">
-					<div class="list-head">
-						<div>
-							<h2>{list.name}</h2>
-							<p>{list.description ?? '説明なし'} / {list.memberCount}件</p>
-						</div>
-						<form method="POST" action="?/delete">
-							<input type="hidden" name="id" value={list.id} />
-							<button class="danger">削除</button>
-						</form>
-					</div>
-
-					<form class="add" method="POST" action="?/addMember">
-						<input type="hidden" name="listId" value={list.id} />
-						<select name="contactId" required>
-							<option value="">連絡先を選択</option>
-							{#each data.contacts as contact}
-								<option value={contact.id}>{contact.name} / {contact.email}</option>
-							{/each}
-						</select>
-						<button>追加</button>
-					</form>
-
-					<div class="members">
-						{#each membersFor(list.id) as member}
-							<form class="member" method="POST" action="?/removeMember">
-								<input type="hidden" name="listId" value={list.id} />
-								<input type="hidden" name="contactId" value={member.contactId} />
-								<span>{member.name}<small>{member.email}</small></span>
-								<button class="plain">外す</button>
+		<section class="lists">
+			{#if data.lists.length === 0}
+				<p class="empty">宛先リストはまだありません。</p>
+			{:else}
+				{#each data.lists as list}
+					<article class="list-card">
+						<div class="list-head">
+							<div>
+								<h2>{list.name}</h2>
+								<p>{list.description ?? '説明なし'} / {list.memberCount}件</p>
+							</div>
+							<form method="POST" action="?/delete">
+								<input type="hidden" name="id" value={list.id} />
+								<button class="danger">削除</button>
 							</form>
-						{/each}
-					</div>
-				</article>
-			{/each}
-		{/if}
-	</section>
+						</div>
+
+						<form class="add" method="POST" action="?/addMember">
+							<input type="hidden" name="listId" value={list.id} />
+							<select name="contactId" required>
+								<option value="">連絡先を選択</option>
+								{#each data.contacts as contact}
+									<option value={contact.id}>{contact.name} / {contact.email}</option>
+								{/each}
+							</select>
+							<button>追加</button>
+						</form>
+
+						<div class="members">
+							{#each membersFor(list.id) as member}
+								<form class="member" method="POST" action="?/removeMember">
+									<input type="hidden" name="listId" value={list.id} />
+									<input type="hidden" name="contactId" value={member.contactId} />
+									<span>{member.name}<small>{member.email}</small></span>
+									<button class="plain">外す</button>
+								</form>
+							{/each}
+						</div>
+					</article>
+				{/each}
+			{/if}
+		</section>
+	</div>
 </main>
 
 <style>
@@ -80,7 +82,7 @@
 		font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
 		color: #17211b;
 	}
-	.page { max-width: 760px; margin: 0 auto; padding: 20px 16px 84px; }
+	.page { max-width: 1120px; margin: 0 auto; padding: 24px 20px 84px; }
 	.back, .mini { color: #6d4d21; font-weight: 800; text-decoration: none; }
 	header { display: flex; justify-content: space-between; gap: 14px; align-items: end; margin: 22px 0; }
 	.eyebrow { margin: 0 0 6px; color: #93621f; font-size: 12px; font-weight: 800; letter-spacing: .14em; }
@@ -92,6 +94,7 @@
 		box-shadow: 0 14px 36px rgba(23,33,27,.08);
 		padding: 18px;
 	}
+	.workspace { display: grid; gap: 16px; align-items: start; }
 	h2 { margin: 0; font-size: 18px; }
 	form { display: grid; gap: 10px; }
 	input, textarea, select {
@@ -104,7 +107,7 @@
 		background: white;
 	}
 	button { border: none; border-radius: 14px; background: #f08a24; color: #1c1207; font-weight: 800; padding: 12px; }
-	.lists { display: grid; gap: 12px; margin-top: 16px; }
+	.lists { display: grid; gap: 12px; }
 	.list-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
 	.list-head p, .empty, small { color: #69746d; }
 	.add { display: grid; grid-template-columns: 1fr auto; margin: 14px 0; }
@@ -124,5 +127,17 @@
 	@media (max-width: 620px) {
 		header, .list-head { align-items: stretch; flex-direction: column; }
 		.add { grid-template-columns: 1fr; }
+	}
+	@media (min-width: 960px) {
+		.workspace {
+			grid-template-columns: minmax(320px, 0.38fr) minmax(0, 1fr);
+		}
+		.card {
+			position: sticky;
+			top: 20px;
+		}
+		.members {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 </style>

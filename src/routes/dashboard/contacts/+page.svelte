@@ -16,50 +16,52 @@
 		<p class="error">{form.error}</p>
 	{/if}
 
-	<section class="card">
-		<h2>連絡先を追加</h2>
-		<form method="POST" action="?/create">
-			<label>
-				名前
-				<input name="name" required placeholder="山田 太郎" />
-			</label>
-			<label>
-				メールアドレス
-				<input name="email" type="email" required placeholder="name@example.com" />
-			</label>
-			<label>
-				所属
-				<input name="organization" placeholder="学校・団体・会社など" />
-			</label>
-			<label>
-				メモ
-				<textarea name="note" rows="3" placeholder="送信時に確認したい補足"></textarea>
-			</label>
-			<button>追加する</button>
-		</form>
-	</section>
+	<div class="workspace">
+		<section class="card">
+			<h2>連絡先を追加</h2>
+			<form method="POST" action="?/create">
+				<label>
+					名前
+					<input name="name" required placeholder="山田 太郎" />
+				</label>
+				<label>
+					メールアドレス
+					<input name="email" type="email" required placeholder="name@example.com" />
+				</label>
+				<label>
+					所属
+					<input name="organization" placeholder="学校・団体・会社など" />
+				</label>
+				<label>
+					メモ
+					<textarea name="note" rows="5" placeholder="送信時に確認したい補足"></textarea>
+				</label>
+				<button>追加する</button>
+			</form>
+		</section>
 
-	<section class="list">
-		{#if data.contacts.length === 0}
-			<p class="empty">連絡先はまだありません。</p>
-		{:else}
-			{#each data.contacts as contact}
-				<article class="row">
-					<div>
-						<strong>{contact.name}</strong>
-						<span>{contact.email}</span>
-						{#if contact.organization}
-							<small>{contact.organization}</small>
-						{/if}
-					</div>
-					<form method="POST" action="?/delete">
-						<input type="hidden" name="id" value={contact.id} />
-						<button class="danger" aria-label={`${contact.name}を削除`}>削除</button>
-					</form>
-				</article>
-			{/each}
-		{/if}
-	</section>
+		<section class="list">
+			{#if data.contacts.length === 0}
+				<p class="empty">連絡先はまだありません。</p>
+			{:else}
+				{#each data.contacts as contact}
+					<article class="row">
+						<div>
+							<strong>{contact.name}</strong>
+							<span>{contact.email}</span>
+							{#if contact.organization}
+								<small>{contact.organization}</small>
+							{/if}
+						</div>
+						<form method="POST" action="?/delete">
+							<input type="hidden" name="id" value={contact.id} />
+							<button class="danger" aria-label={`${contact.name}を削除`}>削除</button>
+						</form>
+					</article>
+				{/each}
+			{/if}
+		</section>
+	</div>
 </main>
 
 <style>
@@ -70,9 +72,9 @@
 		color: #17211b;
 	}
 	.page {
-		max-width: 720px;
+		max-width: 1120px;
 		margin: 0 auto;
-		padding: 20px 16px 84px;
+		padding: 24px 20px 84px;
 	}
 	.back {
 		color: #6d4d21;
@@ -113,6 +115,11 @@
 	.card {
 		padding: 18px;
 	}
+	.workspace {
+		display: grid;
+		gap: 16px;
+		align-items: start;
+	}
 	h2 {
 		margin: 0 0 14px;
 		font-size: 18px;
@@ -148,7 +155,6 @@
 	.list {
 		display: grid;
 		gap: 10px;
-		margin-top: 16px;
 	}
 	.row {
 		display: flex;
@@ -176,5 +182,30 @@
 		padding: 12px;
 		background: #ffe8e4;
 		color: #a53024;
+	}
+	@media (min-width: 960px) {
+		.workspace {
+			grid-template-columns: minmax(320px, 0.42fr) minmax(0, 1fr);
+		}
+		.card {
+			position: sticky;
+			top: 20px;
+		}
+		.row {
+			display: grid;
+			grid-template-columns: minmax(10rem, 1.1fr) minmax(14rem, 1.2fr) auto;
+			align-items: center;
+		}
+		.row div {
+			display: contents;
+		}
+		.row strong,
+		.row span,
+		.row small {
+			min-width: 0;
+		}
+		.row form {
+			justify-self: end;
+		}
 	}
 </style>

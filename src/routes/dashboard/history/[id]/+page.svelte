@@ -51,7 +51,7 @@
 
 <style>
 	:global(body) { margin: 0; background: linear-gradient(160deg, #f7efe1, #e6f0ee); font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif; color: #17211b; }
-	.page { max-width: 820px; margin: 0 auto; padding: 20px 16px 92px; }
+	.page { max-width: 1120px; margin: 0 auto; padding: 24px 20px 92px; }
 	.back { color: #6d4d21; font-weight: 800; text-decoration: none; }
 	header { margin: 22px 0; }
 	.eyebrow { margin: 0 0 6px; color: #93621f; font-size: 12px; font-weight: 800; letter-spacing: .14em; }
@@ -101,4 +101,28 @@
 		font: inherit;
 	}
 	.danger { background: rgba(191,56,42,.1); color: #a53024; }
+	@media (min-width: 960px) {
+		.page {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) 340px;
+			gap: 16px;
+			align-items: start;
+		}
+		.back,
+		header {
+			grid-column: 1 / -1;
+		}
+		.card:first-of-type,
+		.actions {
+			grid-column: 2;
+		}
+		.card:nth-of-type(2) {
+			grid-column: 1;
+			grid-row: 3 / span 2;
+		}
+		.actions {
+			position: sticky;
+			top: 20px;
+		}
+	}
 </style>

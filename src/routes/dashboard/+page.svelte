@@ -83,7 +83,7 @@
 		font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
 	}
 	.dashboard {
-		max-width: 980px;
+		max-width: 1180px;
 		margin: 0 auto;
 		padding: 24px 18px 80px;
 	}
@@ -237,6 +237,41 @@
 		}
 		.stats {
 			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+	@media (min-width: 980px) {
+		.dashboard {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) 360px;
+			gap: 18px;
+		}
+		.hero {
+			grid-column: 1 / -1;
+		}
+		.primary-action,
+		.panel {
+			grid-column: 1;
+		}
+		.stats,
+		.quick {
+			grid-column: 2;
+		}
+		.stats {
+			grid-template-columns: repeat(2, 1fr);
+			align-self: start;
+		}
+		.quick {
+			position: sticky;
+			top: 18px;
+			display: grid;
+			padding: 0;
+			align-self: start;
+		}
+		.quick a {
+			border-radius: 16px;
+		}
+		.primary-action {
+			margin: 0;
 		}
 	}
 </style>

@@ -78,12 +78,12 @@
 
 <style>
 	:global(body) { margin: 0; background: linear-gradient(150deg, #f7efe1, #e6f0ee); font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif; color: #17211b; }
-	.page { max-width: 820px; margin: 0 auto; padding: 20px 16px 92px; }
+	.page { max-width: 1180px; margin: 0 auto; padding: 24px 20px 92px; }
 	.back { color: #6d4d21; font-weight: 800; text-decoration: none; }
 	header { margin: 22px 0; }
 	.eyebrow { margin: 0 0 6px; color: #93621f; font-size: 12px; font-weight: 800; letter-spacing: .14em; }
 	h1 { margin: 0; font-size: 42px; letter-spacing: -.05em; }
-	.composer { display: grid; gap: 14px; }
+	.composer { display: grid; gap: 14px; align-items: start; }
 	.card {
 		border: 1px solid rgba(23,33,27,.12);
 		border-radius: 22px;
@@ -134,5 +134,29 @@
 	.error { border-radius: 14px; padding: 12px; background: #ffe8e4; color: #a53024; }
 	@media (max-width: 620px) {
 		.template-row, .actions { grid-template-columns: 1fr; }
+	}
+	@media (min-width: 1024px) {
+		.composer {
+			grid-template-columns: minmax(0, 1fr) 360px;
+		}
+		.card:first-child {
+			min-height: 640px;
+		}
+		.card:first-child textarea {
+			min-height: 420px;
+		}
+		.card:nth-child(2) {
+			position: sticky;
+			top: 20px;
+			max-height: calc(100vh - 40px);
+			overflow: auto;
+		}
+		.actions {
+			grid-column: 1 / -1;
+			position: static;
+			grid-template-columns: 220px 1fr;
+			justify-self: end;
+			width: min(100%, 520px);
+		}
 	}
 </style>

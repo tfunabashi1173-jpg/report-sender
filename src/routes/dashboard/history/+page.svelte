@@ -28,7 +28,7 @@
 
 <style>
 	:global(body) { margin: 0; background: #f4efe4; font-family: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif; color: #17211b; }
-	.page { max-width: 760px; margin: 0 auto; padding: 20px 16px 84px; }
+	.page { max-width: 1080px; margin: 0 auto; padding: 24px 20px 84px; }
 	.back { color: #6d4d21; font-weight: 800; text-decoration: none; }
 	header { margin: 22px 0; }
 	.eyebrow { margin: 0 0 6px; color: #93621f; font-size: 12px; font-weight: 800; letter-spacing: .14em; }
@@ -47,4 +47,18 @@
 	}
 	.row div { display: grid; gap: 4px; }
 	.row span, .row small, .empty { color: #69746d; }
+	@media (min-width: 900px) {
+		.row {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) 160px;
+			align-items: center;
+			padding: 18px 20px;
+		}
+		.row strong {
+			font-size: 18px;
+		}
+		.row small {
+			text-align: right;
+		}
+	}
 </style>
