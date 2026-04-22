@@ -2,14 +2,21 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	const { user, profile } = await requireDashboardUser(locals);
+	const sort = url.searchParams.get('sort') === 'organization' ? 'organization' : 'name';
+	const orderBy =
+		sort === 'organization'
+			? `CASE WHEN organization IS NULL OR organization = '' THEN 1 ELSE 0 END,
+			   organization COLLATE NOCASE,
+			   name COLLATE NOCASE`
+			: 'name COLLATE NOCASE';
 	const { results } = await locals.db
 		.prepare(
 			`SELECT id, name, email, organization, note, updated_at AS updatedAt
 			 FROM contacts
 			 WHERE created_by = ?1
-			 ORDER BY name COLLATE NOCASE`
+			 ORDER BY ${orderBy}`
 		)
 		.bind(user.id)
 		.all<{
@@ -21,7 +28,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			updatedAt: string;
 		}>();
 
-	return { profile, contacts: results ?? [] };
+	return { profile, contacts: results ?? [], sort };
 };
 
 export const actions: Actions = {

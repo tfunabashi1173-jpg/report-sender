@@ -40,6 +40,13 @@
 		</section>
 
 		<section class="list">
+			<div class="list-head">
+				<h2>登録済み</h2>
+				<div class="sort-tabs" aria-label="連絡先の並び替え">
+					<a class:active={data.sort === 'name'} href="/dashboard/contacts?sort=name">名前順</a>
+					<a class:active={data.sort === 'organization'} href="/dashboard/contacts?sort=organization">会社順</a>
+				</div>
+			</div>
 			{#if data.contacts.length === 0}
 				<p class="empty">連絡先はまだありません。</p>
 			{:else}
@@ -154,6 +161,34 @@
 	.list {
 		display: grid;
 		gap: 10px;
+	}
+	.list-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	.list-head h2 {
+		margin: 0;
+	}
+	.sort-tabs {
+		display: flex;
+		gap: 6px;
+		padding: 4px;
+		border-radius: 999px;
+		background: rgba(23, 33, 27, 0.06);
+	}
+	.sort-tabs a {
+		border-radius: 999px;
+		padding: 8px 12px;
+		color: #69746d;
+		font-size: 13px;
+		font-weight: 800;
+		text-decoration: none;
+	}
+	.sort-tabs a.active {
+		background: #17211b;
+		color: white;
 	}
 	.row {
 		display: flex;
