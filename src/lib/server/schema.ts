@@ -161,6 +161,7 @@ export async function ensureRuntimeSchema(db: D1Database) {
 					from_email TEXT NOT NULL,
 					from_name TEXT,
 					reply_to TEXT,
+					signature TEXT,
 					created_at TEXT NOT NULL,
 					updated_at TEXT NOT NULL,
 					updated_by TEXT NOT NULL,
@@ -168,6 +169,11 @@ export async function ensureRuntimeSchema(db: D1Database) {
 				)`
 			)
 			.run();
+		const smtpColumns = await db.prepare("SELECT name FROM pragma_table_info('smtp_settings')").all<{ name: string }>();
+		const smtpColumnNames = new Set((smtpColumns.results ?? []).map((r) => r.name));
+		if (!smtpColumnNames.has('signature')) {
+			await db.prepare('ALTER TABLE smtp_settings ADD COLUMN signature TEXT').run();
+		}
 	})();
 
 	try {

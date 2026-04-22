@@ -11,6 +11,7 @@ export type SmtpSettings = {
 	from_email: string;
 	from_name: string | null;
 	reply_to: string | null;
+	signature: string | null;
 };
 
 export type MailRecipient = {
@@ -27,7 +28,7 @@ export type MailAttachment = {
 
 export async function getSmtpSettings(db: D1Database) {
 	return (await db
-		.prepare('SELECT host, port, secure_mode, username, password, from_email, from_name, reply_to FROM smtp_settings WHERE id = ?1')
+		.prepare('SELECT host, port, secure_mode, username, password, from_email, from_name, reply_to, signature FROM smtp_settings WHERE id = ?1')
 		.bind('default')
 		.first()) as SmtpSettings | null;
 }
@@ -78,6 +79,12 @@ function normalizeNewlines(value: string) {
 	return value.replace(/\r?\n/g, '\r\n');
 }
 
+function appendSignature(body: string, signature: string | null | undefined) {
+	const trimmedSignature = signature?.trim();
+	if (!trimmedSignature) return body;
+	return `${body.trimEnd()}\n\n${trimmedSignature}`;
+}
+
 function foldBase64(value: string) {
 	return value.match(/.{1,76}/g)?.join('\r\n') ?? '';
 }
@@ -110,7 +117,7 @@ function buildMessage(
 		'Content-Type: text/plain; charset=UTF-8',
 		'Content-Transfer-Encoding: base64',
 		'',
-		foldBase64(bytesToBase64(new TextEncoder().encode(normalizeNewlines(body))))
+		foldBase64(bytesToBase64(new TextEncoder().encode(normalizeNewlines(appendSignature(body, settings.signature)))))
 	];
 
 	for (const attachment of attachments) {

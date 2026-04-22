@@ -8,7 +8,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const settings = await locals.db
 		.prepare(
 			`SELECT host, port, secure_mode AS secureMode, username,
-			        from_email AS fromEmail, from_name AS fromName, reply_to AS replyTo, updated_at AS updatedAt
+			        from_email AS fromEmail, from_name AS fromName, reply_to AS replyTo, signature, updated_at AS updatedAt
 			 FROM smtp_settings
 			 WHERE id = ?1`
 		)
@@ -21,6 +21,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			fromEmail: string;
 			fromName: string | null;
 			replyTo: string | null;
+			signature: string | null;
 			updatedAt: string;
 		}>();
 
@@ -39,6 +40,7 @@ export const actions: Actions = {
 		const fromEmail = String(form.get('fromEmail') ?? '').trim();
 		const fromName = String(form.get('fromName') ?? '').trim();
 		const replyTo = String(form.get('replyTo') ?? '').trim();
+		const signature = String(form.get('signature') ?? '').trim();
 
 		if (!host || !Number.isInteger(port) || port <= 0) {
 			return fail(400, { error: 'SMTPホストとポートは必須です' });
@@ -57,8 +59,8 @@ export const actions: Actions = {
 		await locals.db
 			.prepare(
 				`INSERT INTO smtp_settings
-				 (id, host, port, secure_mode, username, password, from_email, from_name, reply_to, created_at, updated_at, updated_by)
-				 VALUES ('default', ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9, ?10)
+				 (id, host, port, secure_mode, username, password, from_email, from_name, reply_to, signature, created_at, updated_at, updated_by)
+				 VALUES ('default', ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10, ?11)
 				 ON CONFLICT(id) DO UPDATE SET
 				 host = excluded.host,
 				 port = excluded.port,
@@ -68,10 +70,11 @@ export const actions: Actions = {
 				 from_email = excluded.from_email,
 				 from_name = excluded.from_name,
 				 reply_to = excluded.reply_to,
+				 signature = excluded.signature,
 				 updated_at = excluded.updated_at,
 				 updated_by = excluded.updated_by`
 			)
-			.bind(host, port, secureMode, username || null, password, fromEmail, fromName || null, replyTo || null, now, user.id)
+			.bind(host, port, secureMode, username || null, password, fromEmail, fromName || null, replyTo || null, signature || null, now, user.id)
 			.run();
 
 		redirect(303, '/dashboard/settings/mail?status=saved');

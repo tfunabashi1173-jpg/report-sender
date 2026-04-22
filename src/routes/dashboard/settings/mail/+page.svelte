@@ -70,6 +70,15 @@
 					<input name="replyTo" type="email" value={data.settings?.replyTo ?? ''} placeholder="reply@example.co.jp" />
 				</label>
 			</div>
+			<label>
+				署名
+				<textarea
+					name="signature"
+					rows="6"
+					placeholder={`株式会社サンプル\n施設管理部\n山田 太郎\nTEL: 03-0000-0000`}
+				>{data.settings?.signature ?? ''}</textarea>
+			</label>
+			<p class="hint">送信時に本文末尾へ自動で追加します。本文との間には空行を1つ入れます。</p>
 			<button>保存する</button>
 		</form>
 	</section>
@@ -114,7 +123,9 @@
 	form { display: grid; gap: 14px; }
 	.grid { display: grid; gap: 14px; }
 	label { display: grid; gap: 6px; font-size: 13px; font-weight: 800; }
-	input, select { box-sizing: border-box; width: 100%; border: 1px solid rgba(32,35,31,.18); border-radius: 12px; padding: 12px; font: inherit; background: white; }
+	input, textarea, select { box-sizing: border-box; width: 100%; border: 1px solid rgba(32,35,31,.18); border-radius: 12px; padding: 12px; font: inherit; background: white; }
+	textarea { resize: vertical; line-height: 1.6; }
+	.hint { margin: -4px 0 0; color: #61675f; font-size: 13px; line-height: 1.7; }
 	button { border: none; border-radius: 12px; background: #334f3c; color: white; font-weight: 900; padding: 14px; }
 	button:disabled { opacity: .55; cursor: not-allowed; }
 	.secondary { background: #20231f; }
