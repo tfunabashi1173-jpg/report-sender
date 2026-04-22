@@ -252,16 +252,14 @@
 							<small>{group.contacts.length}名</small>
 							<strong>{isOrganizationOpen('to', group.name) ? '閉じる' : '開く'}</strong>
 						</button>
-						{#if isOrganizationOpen('to', group.name)}
-							<div class="group-members">
-								{#each group.contacts as contact}
-									<label class="check">
-										<input bind:group={selectedToContactIds} type="checkbox" name="toContactIds" value={contact.id} />
-										<span>{contact.name}<small>{contact.email}</small></span>
-									</label>
-								{/each}
-							</div>
-						{/if}
+						<div class="group-members" hidden={!isOrganizationOpen('to', group.name)}>
+							{#each group.contacts as contact}
+								<label class="check">
+									<input bind:group={selectedToContactIds} type="checkbox" name="toContactIds" value={contact.id} />
+									<span>{contact.name}<small>{contact.email}</small></span>
+								</label>
+							{/each}
+						</div>
 					</div>
 				{/each}
 			</div>
@@ -280,16 +278,14 @@
 							<small>{group.contacts.length}名</small>
 							<strong>{isOrganizationOpen('cc', group.name) ? '閉じる' : '開く'}</strong>
 						</button>
-						{#if isOrganizationOpen('cc', group.name)}
-							<div class="group-members">
-								{#each group.contacts as contact}
-									<label class="check">
-										<input bind:group={selectedCcContactIds} type="checkbox" name="ccContactIds" value={contact.id} />
-										<span>{contact.name}<small>{contact.email}</small></span>
-									</label>
-								{/each}
-							</div>
-						{/if}
+						<div class="group-members" hidden={!isOrganizationOpen('cc', group.name)}>
+							{#each group.contacts as contact}
+								<label class="check">
+									<input bind:group={selectedCcContactIds} type="checkbox" name="ccContactIds" value={contact.id} />
+									<span>{contact.name}<small>{contact.email}</small></span>
+								</label>
+							{/each}
+						</div>
 					</div>
 				{/each}
 			</div>
