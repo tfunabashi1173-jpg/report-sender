@@ -5,17 +5,32 @@
 	let { data } = $props();
 
 	let displayName = $state(data.inviteData?.displayName ?? '');
+	let loginId = $state('');
+	let password = $state('');
 	let loading = $state(false);
 	let error = $state(data.error ?? '');
 
 	async function register() {
+		if (!displayName.trim() || !loginId.trim() || !password) {
+			error = '名前・ログインID・ログインパスワードは必須です';
+			return;
+		}
+		if (password.length < 8) {
+			error = 'ログインパスワードは8文字以上で入力してください';
+			return;
+		}
+
 		loading = true;
 		error = '';
 		try {
 			const res = await fetch(`/api/invite/${data.token}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ displayName })
+				body: JSON.stringify({
+					displayName,
+					loginId,
+					password
+				})
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error);
@@ -74,7 +89,17 @@
 			<input type="text" bind:value={displayName} placeholder="山田 太郎" />
 		</label>
 
-		<button class="btn-primary" onclick={register} disabled={loading || !displayName}>
+		<label>
+			ログインID
+			<input type="text" bind:value={loginId} placeholder="taro" />
+		</label>
+
+		<label>
+			ログインパスワード
+			<input type="password" bind:value={password} placeholder="8文字以上" />
+		</label>
+
+		<button class="btn-primary" onclick={register} disabled={loading || !displayName.trim() || !loginId.trim() || !password}>
 			{loading ? '登録中...' : '登録してパスキーを作成'}
 		</button>
 	{/if}

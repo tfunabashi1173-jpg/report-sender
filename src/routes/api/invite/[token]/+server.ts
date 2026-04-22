@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createSession, setSessionCookie } from '$lib/server/auth';
+import { hashPassword } from '$lib/server/password';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	const data = (await locals.db
@@ -20,8 +21,14 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 };
 
 export const POST: RequestHandler = async ({ params, request, locals, cookies }) => {
-	const { displayName } = await request.json();
+	const { displayName, loginId, password } = await request.json();
 	if (!displayName) return json({ error: '名前は必須です' }, { status: 400 });
+	if (typeof loginId !== 'string' || loginId.trim().length === 0) {
+		return json({ error: 'ログインIDは必須です' }, { status: 400 });
+	}
+	if (typeof password !== 'string' || password.length < 8) {
+		return json({ error: 'ログインパスワードは8文字以上で入力してください' }, { status: 400 });
+	}
 
 	const invite = (await locals.db
 		.prepare(
@@ -39,11 +46,23 @@ export const POST: RequestHandler = async ({ params, request, locals, cookies })
 	const userId = crypto.randomUUID();
 	const placeholderEmail = `${crypto.randomUUID()}@report-sender.local`;
 	const now = new Date().toISOString();
+	const normalizedLoginId = loginId.trim();
+	const passwordHash = await hashPassword(password);
+
+	const exists = (await locals.db
+		.prepare('SELECT id FROM users WHERE login_id = ?1')
+		.bind(normalizedLoginId)
+		.first()) as { id: string } | null;
+	if (exists) {
+		return json({ error: 'そのログインIDは既に使用されています' }, { status: 409 });
+	}
 
 	await locals.db.batch([
 		locals.db
-			.prepare('INSERT INTO users (id, email, phone, created_at) VALUES (?1, ?2, ?3, ?4)')
-			.bind(userId, placeholderEmail, null, now),
+			.prepare(
+				'INSERT INTO users (id, email, phone, login_id, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)'
+			)
+			.bind(userId, placeholderEmail, null, normalizedLoginId, passwordHash, now),
 		locals.db
 			.prepare('INSERT INTO profiles (id, display_name, role, created_at) VALUES (?1, ?2, ?3, ?4)')
 			.bind(userId, displayName, 'member', now),

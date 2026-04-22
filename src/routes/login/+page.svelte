@@ -1,13 +1,20 @@
 <script lang="ts">
 	import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 	import { goto } from '$app/navigation';
-
-	let { data } = $props();
+	import { onMount } from 'svelte';
 
 	let loading = $state(false);
 	let error = $state('');
+	let hasAdmin = $state<boolean | null>(null);
+
+	let loginId = $state('');
+	let password = $state('');
+	let passwordLoading = $state(false);
+
 	let setupName = $state('');
-	let setupKey = $state('');
+	let setupLoginId = $state('');
+	let setupPassword = $state('');
+	let setupBootstrapKey = $state('');
 	let setupLoading = $state(false);
 
 	async function loginWithPasskey() {
@@ -35,14 +42,47 @@
 			if (e?.name === 'NotAllowedError') {
 				error = 'キャンセルされました';
 			} else {
-				error = 'パスキーが見つかりません。管理者に招待リンクを依頼してください。';
+				error = 'パスキーでログインできませんでした';
 			}
 		} finally {
 			loading = false;
 		}
 	}
 
+	async function loginWithPassword() {
+		if (!loginId.trim() || !password) {
+			error = 'ログインIDとパスワードを入力してください';
+			return;
+		}
+
+		passwordLoading = true;
+		error = '';
+		try {
+			const res = await fetch('/api/auth/password/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ loginId, password })
+			});
+			const result = await res.json();
+			if (!res.ok) throw new Error(result.error ?? 'パスワードログインに失敗しました');
+			goto('/dashboard');
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			passwordLoading = false;
+		}
+	}
+
 	async function createFirstAdmin() {
+		if (!setupName.trim() || !setupLoginId.trim() || !setupPassword || !setupBootstrapKey.trim()) {
+			error = '管理者名・ログインID・ログインパスワード・初期化キーは必須です';
+			return;
+		}
+		if (setupPassword.length < 8) {
+			error = 'ログインパスワードは8文字以上で入力してください';
+			return;
+		}
+
 		setupLoading = true;
 		error = '';
 		try {
@@ -51,7 +91,9 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					displayName: setupName,
-					bootstrapKey: setupKey
+					loginId: setupLoginId,
+					password: setupPassword,
+					bootstrapKey: setupBootstrapKey
 				})
 			});
 			const result = await res.json();
@@ -89,26 +131,15 @@
 		}
 	}
 
-	async function loginAsAdminWithKey() {
-		setupLoading = true;
-		error = '';
+	onMount(async () => {
 		try {
-			const res = await fetch('/api/bootstrap/admin-login', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					bootstrapKey: setupKey
-				})
-			});
+			const res = await fetch('/api/bootstrap/status');
 			const result = await res.json();
-			if (!res.ok) throw new Error(result.error ?? '管理者ログインに失敗しました');
-			goto('/dashboard');
-		} catch (e: any) {
-			error = e.message;
-		} finally {
-			setupLoading = false;
+			hasAdmin = Boolean(result.hasAdmin);
+		} catch {
+			hasAdmin = true;
 		}
-	}
+	});
 </script>
 
 <main class="login">
@@ -122,27 +153,61 @@
 		{loading ? '認証中...' : 'Face ID / パスキーでログイン'}
 	</button>
 
-	<p class="hint">
-		初めてご利用の方は管理者から招待リンクを受け取ってください。
-	</p>
+	{#if hasAdmin === null}
+		<p class="hint">状態を確認中...</p>
+	{:else if hasAdmin}
+		<p class="hint">パスキーが使えない場合は、ログインIDとパスワードでログインしてください。</p>
 
-	<section class="setup">
-		<h2>初期セットアップ（管理者未作成時のみ）</h2>
-		<label>
-			管理者名
-			<input type="text" bind:value={setupName} placeholder="管理者" />
-		</label>
-		<label>
-			初期化キー（任意）
-			<input type="password" bind:value={setupKey} placeholder="環境変数で設定した場合のみ入力" />
-		</label>
-		<button class="btn-secondary" onclick={createFirstAdmin} disabled={setupLoading}>
-			{setupLoading ? '作成中...' : '初期管理者を作成してパスキー登録'}
-		</button>
-		<button class="btn-secondary" onclick={loginAsAdminWithKey} disabled={setupLoading || !setupKey}>
-			{setupLoading ? '処理中...' : '管理者キーでログイン'}
-		</button>
-	</section>
+		<section class="setup">
+			<h2>パスワードログイン</h2>
+			<label>
+				ログインID
+				<input type="text" bind:value={loginId} placeholder="taro" />
+			</label>
+			<label>
+				ログインパスワード
+				<input type="password" bind:value={password} placeholder="8文字以上" />
+			</label>
+			<button class="btn-secondary" onclick={loginWithPassword} disabled={passwordLoading || !loginId.trim() || !password}>
+				{passwordLoading ? 'ログイン中...' : 'IDとパスワードでログイン'}
+			</button>
+		</section>
+	{:else}
+		<p class="hint">初回起動です。初期管理者を作成してください。</p>
+
+		<section class="setup">
+			<h2>初期セットアップ</h2>
+			<label>
+				管理者名
+				<input type="text" bind:value={setupName} placeholder="管理者" />
+			</label>
+			<label>
+				ログインID
+				<input type="text" bind:value={setupLoginId} placeholder="admin" />
+			</label>
+			<label>
+				ログインパスワード
+				<input type="password" bind:value={setupPassword} placeholder="8文字以上" />
+			</label>
+			<label>
+				初期化キー
+				<input type="password" bind:value={setupBootstrapKey} placeholder="BOOTSTRAP_ADMIN_KEY" />
+			</label>
+			<button
+				class="btn-secondary"
+				onclick={createFirstAdmin}
+				disabled={
+					setupLoading ||
+					!setupName.trim() ||
+					!setupLoginId.trim() ||
+					!setupPassword ||
+					!setupBootstrapKey.trim()
+				}
+			>
+				{setupLoading ? '作成中...' : '初期管理者を作成してパスキー登録'}
+			</button>
+		</section>
+	{/if}
 </main>
 
 <style>
