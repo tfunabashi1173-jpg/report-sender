@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
@@ -37,6 +36,7 @@
 		loading = true;
 		error = '';
 		try {
+			const { startAuthentication } = await import('@simplewebauthn/browser');
 			const optRes = await fetch('/api/auth/passkey/authenticate', { method: 'GET' });
 			const opts = await optRes.json();
 			if (!optRes.ok) throw new Error(opts.error ?? 'パスキー認証を開始できません');
@@ -66,8 +66,17 @@
 		}
 	}
 
+	function readPasswordCredentials() {
+		syncAutofilledValues();
+		return {
+			name: (displayNameInputEl?.value ?? displayName).trim(),
+			secret: passwordInputEl?.value ?? password
+		};
+	}
+
 	async function loginWithPassword() {
-		if (!displayName.trim() || !password) {
+		const credentials = readPasswordCredentials();
+		if (!credentials.name || !credentials.secret) {
 			error = '名前とパスワードを入力してください';
 			return;
 		}
@@ -78,7 +87,7 @@
 			const res = await fetch('/api/auth/password/login', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ displayName, password })
+				body: JSON.stringify({ displayName: credentials.name, password: credentials.secret })
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? 'パスワードログインに失敗しました');
@@ -100,9 +109,9 @@
 	}
 
 	$effect(() => {
-		syncAutofilledValues();
 		if (!hasAdmin || passwordLoading) return;
-		const ready = displayName.trim().length > 0 && password.length > 0;
+		const credentials = readPasswordCredentials();
+		const ready = credentials.name.length > 0 && credentials.secret.length > 0;
 		if (!ready) {
 			autoPasswordLoginAttempted = false;
 			return;
@@ -114,7 +123,7 @@
 		const timer = setTimeout(() => {
 			autoPasswordLoginAttempted = true;
 			void loginWithPassword();
-		}, 250);
+		}, 500);
 		return () => clearTimeout(timer);
 	});
 
@@ -184,6 +193,7 @@
 	}
 
 	async function registerCurrentUserPasskey() {
+		const { startRegistration } = await import('@simplewebauthn/browser');
 		if (
 			!window.PublicKeyCredential ||
 			!(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())
@@ -211,6 +221,12 @@
 		void loadBootstrapStatus();
 		const timer = setInterval(() => {
 			syncAutofilledValues();
+			if (!hasAdmin || passwordLoading || autoPasswordLoginAttempted) return;
+			const credentials = readPasswordCredentials();
+			if (credentials.name && credentials.secret) {
+				autoPasswordLoginAttempted = true;
+				void loginWithPassword();
+			}
 		}, 400);
 		return () => clearInterval(timer);
 	});
@@ -242,7 +258,9 @@
 						bind:this={displayNameInputEl}
 						bind:value={displayName}
 						placeholder="山田 太郎"
-						autocomplete="username webauthn"
+						autocomplete="username"
+						oninput={syncAutofilledValues}
+						onchange={syncAutofilledValues}
 					/>
 				</label>
 				<label>
@@ -253,9 +271,11 @@
 						bind:value={password}
 						placeholder="8文字以上"
 						autocomplete="current-password"
+						oninput={syncAutofilledValues}
+						onchange={syncAutofilledValues}
 					/>
 				</label>
-				<button type="submit" class="btn-secondary" disabled={passwordLoading || !displayName.trim() || !password}>
+				<button type="submit" class="btn-secondary" disabled={passwordLoading}>
 					{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
 				</button>
 			</form>

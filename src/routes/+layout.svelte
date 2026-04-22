@@ -1,23 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import favicon from '$lib/assets/favicon.svg';
 
-	let { children } = $props();
-	let commitShortSha = $state('');
-	let commitUrl = $state('');
-
-	onMount(async () => {
-		try {
-			const res = await fetch('/api/meta/version');
-			const data = await res.json();
-			if (res.ok) {
-				commitShortSha = data.shortSha;
-				commitUrl = data.htmlUrl;
-			}
-		} catch {
-			// Footer is optional.
-		}
-	});
+	let { data, children } = $props();
 </script>
 
 <svelte:head>
@@ -28,8 +12,8 @@
 {@render children()}
 
 <footer class="app-footer">
-	{#if commitShortSha}
-		<a href={commitUrl} target="_blank" rel="noreferrer">GitHub {commitShortSha}</a>
+	{#if data.version}
+		<a href={data.version.htmlUrl} target="_blank" rel="noreferrer">GitHub {data.version.shortSha}</a>
 	{/if}
 </footer>
 
