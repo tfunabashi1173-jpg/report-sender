@@ -1,10 +1,13 @@
-import type { D1Database } from '@cloudflare/workers-types';
+import type { Socket } from 'cloudflare:sockets';
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import { bytesToBase64 } from '$lib/server/base64';
 
-export type MailProvider = 'resend' | 'sendgrid';
-
-export type MailSettings = {
-	provider: MailProvider;
-	api_key: string;
+export type SmtpSettings = {
+	host: string;
+	port: number;
+	secure_mode: 'plain' | 'starttls' | 'tls';
+	username: string | null;
+	password: string | null;
 	from_email: string;
 	from_name: string | null;
 	reply_to: string | null;
@@ -13,87 +16,221 @@ export type MailSettings = {
 export type MailRecipient = {
 	name: string;
 	email: string;
+	kind?: 'to' | 'cc';
 };
 
-export async function getMailSettings(db: D1Database) {
+export type MailAttachment = {
+	fileName: string;
+	contentType: string;
+	bytes: Uint8Array;
+};
+
+export async function getSmtpSettings(db: D1Database) {
 	return (await db
-		.prepare('SELECT provider, api_key, from_email, from_name, reply_to FROM mail_settings WHERE id = ?1')
+		.prepare('SELECT host, port, secure_mode, username, password, from_email, from_name, reply_to FROM smtp_settings WHERE id = ?1')
 		.bind('default')
-		.first()) as MailSettings | null;
+		.first()) as SmtpSettings | null;
 }
 
-function fromHeader(settings: MailSettings) {
-	if (!settings.from_name) return settings.from_email;
-	return `${settings.from_name} <${settings.from_email}>`;
+function encodeHeader(value: string) {
+	if (/^[\x20-\x7e]*$/.test(value)) return value;
+	return `=?UTF-8?B?${bytesToBase64(new TextEncoder().encode(value))}?=`;
 }
 
-async function sendResend(settings: MailSettings, recipient: MailRecipient, subject: string, body: string) {
-	const res = await fetch('https://api.resend.com/emails', {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${settings.api_key}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			from: fromHeader(settings),
-			to: [recipient.email],
-			reply_to: settings.reply_to || undefined,
-			subject,
-			text: body
-		})
-	});
-	const result = (await res.json().catch(() => ({}))) as { id?: string; message?: string; error?: string };
-	if (!res.ok) throw new Error(result.message ?? result.error ?? `Resend送信エラー: ${res.status}`);
-	return result.id ?? null;
+function formatAddress(name: string | null | undefined, email: string) {
+	return name ? `${encodeHeader(name)} <${email}>` : email;
 }
 
-async function sendSendGrid(settings: MailSettings, recipient: MailRecipient, subject: string, body: string) {
-	const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${settings.api_key}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({
-			personalizations: [{ to: [{ email: recipient.email, name: recipient.name }] }],
-			from: { email: settings.from_email, name: settings.from_name || undefined },
-			reply_to: settings.reply_to ? { email: settings.reply_to } : undefined,
-			subject,
-			content: [{ type: 'text/plain', value: body }]
-		})
-	});
-	if (!res.ok) {
-		const text = await res.text().catch(() => '');
-		throw new Error(text || `SendGrid送信エラー: ${res.status}`);
+function normalizeNewlines(value: string) {
+	return value.replace(/\r?\n/g, '\r\n');
+}
+
+function foldBase64(value: string) {
+	return value.match(/.{1,76}/g)?.join('\r\n') ?? '';
+}
+
+function buildMessage(
+	settings: SmtpSettings,
+	to: MailRecipient[],
+	cc: MailRecipient[],
+	subject: string,
+	body: string,
+	attachments: MailAttachment[]
+) {
+	const mixedBoundary = `mixed-${crypto.randomUUID()}`;
+	const headers = [
+		`From: ${formatAddress(settings.from_name, settings.from_email)}`,
+		`To: ${to.map((recipient) => formatAddress(recipient.name, recipient.email)).join(', ')}`,
+		cc.length > 0 ? `Cc: ${cc.map((recipient) => formatAddress(recipient.name, recipient.email)).join(', ')}` : null,
+		settings.reply_to ? `Reply-To: ${settings.reply_to}` : null,
+		`Subject: ${encodeHeader(subject)}`,
+		'MIME-Version: 1.0',
+		`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`
+	].filter(Boolean);
+
+	const parts = [
+		`--${mixedBoundary}`,
+		'Content-Type: text/plain; charset=UTF-8',
+		'Content-Transfer-Encoding: base64',
+		'',
+		foldBase64(bytesToBase64(new TextEncoder().encode(normalizeNewlines(body))))
+	];
+
+	for (const attachment of attachments) {
+		parts.push(
+			`--${mixedBoundary}`,
+			`Content-Type: ${attachment.contentType}; name="${attachment.fileName}"`,
+			'Content-Transfer-Encoding: base64',
+			`Content-Disposition: attachment; filename="${attachment.fileName}"`,
+			'',
+			foldBase64(bytesToBase64(attachment.bytes))
+		);
 	}
-	return res.headers.get('x-message-id');
+	parts.push(`--${mixedBoundary}--`, '');
+
+	return `${headers.join('\r\n')}\r\n\r\n${parts.join('\r\n')}`;
+}
+
+class SmtpClient {
+	private reader: ReadableStreamDefaultReader<Uint8Array>;
+	private writer: WritableStreamDefaultWriter<Uint8Array>;
+	private decoder = new TextDecoder();
+	private encoder = new TextEncoder();
+	private buffer = '';
+	private socket: Socket;
+
+	constructor(socket: Socket) {
+		this.socket = socket;
+		this.reader = socket.readable.getReader();
+		this.writer = socket.writable.getWriter();
+	}
+
+	async close() {
+		await this.writer.close().catch(() => undefined);
+		await this.socket.close().catch(() => undefined);
+	}
+
+	private async readLine() {
+		while (!this.buffer.includes('\n')) {
+			const { value, done } = await this.reader.read();
+			if (done) break;
+			this.buffer += this.decoder.decode(value, { stream: true });
+		}
+		const index = this.buffer.indexOf('\n');
+		if (index === -1) {
+			const line = this.buffer;
+			this.buffer = '';
+			return line;
+		}
+		const line = this.buffer.slice(0, index + 1);
+		this.buffer = this.buffer.slice(index + 1);
+		return line;
+	}
+
+	async readResponse() {
+		const lines: string[] = [];
+		let code = 0;
+		for (;;) {
+			const line = await this.readLine();
+			lines.push(line.trimEnd());
+			code = Number(line.slice(0, 3));
+			if (line.length < 4 || line[3] !== '-') break;
+		}
+		return { code, text: lines.join('\n') };
+	}
+
+	async command(command: string, expected: number[]) {
+		await this.writer.write(this.encoder.encode(`${command}\r\n`));
+		const response = await this.readResponse();
+		if (!expected.includes(response.code)) {
+			throw new Error(`SMTPエラー: ${response.text}`);
+		}
+		return response;
+	}
+
+	async writeData(message: string) {
+		const escaped = message.replace(/^\./gm, '..');
+		await this.writer.write(this.encoder.encode(`${escaped}\r\n.\r\n`));
+		const response = await this.readResponse();
+		if (response.code !== 250) throw new Error(`SMTP送信エラー: ${response.text}`);
+	}
+}
+
+async function connectSmtp(settings: SmtpSettings) {
+	const { connect } = await import('cloudflare:sockets');
+	const socket = connect(
+		{ hostname: settings.host, port: settings.port },
+		{ secureTransport: settings.secure_mode === 'tls' ? 'on' : 'off', allowHalfOpen: false }
+	);
+	await socket.opened;
+	let client = new SmtpClient(socket);
+	const greeting = await client.readResponse();
+	if (greeting.code !== 220) throw new Error(`SMTP接続エラー: ${greeting.text}`);
+
+	await client.command('EHLO report-sender.local', [250]);
+	if (settings.secure_mode === 'starttls') {
+		await client.command('STARTTLS', [220]);
+		const secureSocket = socket.startTls();
+		await secureSocket.opened;
+		client = new SmtpClient(secureSocket);
+		await client.command('EHLO report-sender.local', [250]);
+	}
+	return client;
+}
+
+async function loadAttachments(db: D1Database, bucket: R2Bucket, reportId: string) {
+	const { results } = await db
+		.prepare('SELECT r2_key AS r2Key, file_name AS fileName, content_type AS contentType FROM report_attachments WHERE report_id = ?1')
+		.bind(reportId)
+		.all<{ r2Key: string; fileName: string; contentType: string }>();
+
+	const attachments: MailAttachment[] = [];
+	for (const row of results ?? []) {
+		const object = await bucket.get(row.r2Key);
+		if (!object) continue;
+		attachments.push({
+			fileName: row.fileName,
+			contentType: row.contentType,
+			bytes: new Uint8Array(await object.arrayBuffer())
+		});
+	}
+	return attachments;
 }
 
 export async function sendReportMail(
 	db: D1Database,
+	bucket: R2Bucket,
+	reportId: string,
 	recipients: MailRecipient[],
 	subject: string,
 	body: string
 ) {
-	const settings = await getMailSettings(db);
-	if (!settings) {
-		throw new Error('送信メールのサーバー設定が未設定です');
-	}
-	if (recipients.length === 0) {
-		throw new Error('送信先がありません');
+	const settings = await getSmtpSettings(db);
+	if (!settings) throw new Error('SMTP送信設定が未設定です');
+
+	const to = recipients.filter((recipient) => (recipient.kind ?? 'to') === 'to');
+	const cc = recipients.filter((recipient) => recipient.kind === 'cc');
+	if (to.length === 0) throw new Error('メイン宛先を1件以上選択してください');
+
+	const client = await connectSmtp(settings);
+	try {
+		if (settings.username && settings.password) {
+			await client.command('AUTH LOGIN', [334]);
+			await client.command(bytesToBase64(new TextEncoder().encode(settings.username)), [334]);
+			await client.command(bytesToBase64(new TextEncoder().encode(settings.password)), [235]);
+		}
+
+		await client.command(`MAIL FROM:<${settings.from_email}>`, [250]);
+		for (const recipient of [...to, ...cc]) {
+			await client.command(`RCPT TO:<${recipient.email}>`, [250, 251]);
+		}
+		await client.command('DATA', [354]);
+		const attachments = await loadAttachments(db, bucket, reportId);
+		await client.writeData(buildMessage(settings, to, cc, subject, body, attachments));
+		await client.command('QUIT', [221]);
+	} finally {
+		await client.close();
 	}
 
-	const messageIds: string[] = [];
-	for (const recipient of recipients) {
-		const messageId =
-			settings.provider === 'resend'
-				? await sendResend(settings, recipient, subject, body)
-				: await sendSendGrid(settings, recipient, subject, body);
-		if (messageId) messageIds.push(messageId);
-	}
-
-	return {
-		count: recipients.length,
-		messageIds
-	};
+	return { count: to.length + cc.length };
 }

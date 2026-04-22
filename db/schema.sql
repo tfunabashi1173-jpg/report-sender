@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS report_recipients (
 	contact_id TEXT,
 	name TEXT NOT NULL,
 	email TEXT NOT NULL,
+	kind TEXT NOT NULL DEFAULT 'to',
 	created_at TEXT NOT NULL,
 	FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE,
 	FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE SET NULL
@@ -151,10 +152,13 @@ CREATE TABLE IF NOT EXISTS report_recipients (
 
 CREATE INDEX IF NOT EXISTS idx_report_recipients_report_id ON report_recipients(report_id);
 
-CREATE TABLE IF NOT EXISTS mail_settings (
+CREATE TABLE IF NOT EXISTS smtp_settings (
 	id TEXT PRIMARY KEY,
-	provider TEXT NOT NULL CHECK(provider IN ('resend', 'sendgrid')),
-	api_key TEXT NOT NULL,
+	host TEXT NOT NULL,
+	port INTEGER NOT NULL,
+	secure_mode TEXT NOT NULL CHECK(secure_mode IN ('plain', 'starttls', 'tls')),
+	username TEXT,
+	password TEXT,
 	from_email TEXT NOT NULL,
 	from_name TEXT,
 	reply_to TEXT,
@@ -163,3 +167,16 @@ CREATE TABLE IF NOT EXISTS mail_settings (
 	updated_by TEXT NOT NULL,
 	FOREIGN KEY (updated_by) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS report_attachments (
+	id TEXT PRIMARY KEY,
+	report_id TEXT NOT NULL,
+	r2_key TEXT NOT NULL,
+	file_name TEXT NOT NULL,
+	content_type TEXT NOT NULL,
+	size INTEGER NOT NULL,
+	created_at TEXT NOT NULL,
+	FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_report_attachments_report_id ON report_attachments(report_id);

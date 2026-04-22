@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
-import { getMailSettings, sendReportMail } from '$lib/server/mailer';
+import { getSmtpSettings, sendReportMail } from '$lib/server/mailer';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const { user } = await requireDashboardUser(locals);
@@ -27,31 +27,44 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (!report) error(404, '報告が見つかりません');
 
 	const { results } = await locals.db
-		.prepare('SELECT name, email FROM report_recipients WHERE report_id = ?1 ORDER BY name COLLATE NOCASE')
+		.prepare('SELECT name, email, kind FROM report_recipients WHERE report_id = ?1 ORDER BY kind DESC, name COLLATE NOCASE')
 		.bind(report.id)
-		.all<{ name: string; email: string }>();
+		.all<{ name: string; email: string; kind: 'to' | 'cc' }>();
 
-	return { report, recipients: results ?? [], mailConfigured: Boolean(await getMailSettings(locals.db)) };
+	const attachments = await locals.db
+		.prepare('SELECT file_name AS fileName, content_type AS contentType, size FROM report_attachments WHERE report_id = ?1 ORDER BY file_name')
+		.bind(report.id)
+		.all<{ fileName: string; contentType: string; size: number }>();
+
+	return {
+		report,
+		recipients: results ?? [],
+		attachments: attachments.results ?? [],
+		mailConfigured: Boolean(await getSmtpSettings(locals.db))
+	};
 };
 
 export const actions: Actions = {
-	sendNow: async ({ params, locals }) => {
+	sendNow: async ({ params, locals, platform }) => {
 		const { user } = await requireDashboardUser(locals);
 		const report = await locals.db
 			.prepare('SELECT subject, body FROM reports WHERE id = ?1 AND created_by = ?2')
 			.bind(params.id, user.id)
 			.first<{ subject: string; body: string }>();
 		if (!report) error(404, '報告が見つかりません');
-		const recipients = (
-			await locals.db
-				.prepare('SELECT name, email FROM report_recipients WHERE report_id = ?1')
-				.bind(params.id)
-				.all<{ name: string; email: string }>()
-		).results ?? [];
+		const recipients =
+			(
+				await locals.db
+					.prepare('SELECT name, email, kind FROM report_recipients WHERE report_id = ?1')
+					.bind(params.id)
+					.all<{ name: string; email: string; kind: 'to' | 'cc' }>()
+			).results ?? [];
 
 		const now = new Date().toISOString();
 		try {
-			const result = await sendReportMail(locals.db, recipients, report.subject, report.body);
+			const bucket = platform?.env.REPORT_ASSETS;
+			if (!bucket) throw new Error('R2ストレージ設定が未設定です');
+			const result = await sendReportMail(locals.db, bucket, params.id, recipients, report.subject, report.body);
 			await locals.db
 				.prepare(
 					`UPDATE reports
@@ -59,7 +72,7 @@ export const actions: Actions = {
 					     provider_message_id = ?1, sent_at = ?2, updated_at = ?2
 					 WHERE id = ?3 AND created_by = ?4`
 				)
-				.bind(result.messageIds.join(',') || null, now, params.id, user.id)
+				.bind(String(result.count), now, params.id, user.id)
 				.run();
 		} catch (e: any) {
 			await locals.db

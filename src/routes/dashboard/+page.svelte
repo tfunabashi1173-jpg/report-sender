@@ -8,12 +8,12 @@
 		goto('/login');
 	}
 
-	const cards = $derived([
-		{ label: '連絡先', value: data.stats.contacts, href: '/dashboard/contacts', action: '管理' },
-		{ label: '宛先リスト', value: data.stats.lists, href: '/dashboard/lists', action: '整理' },
-		{ label: '定型文', value: data.stats.templates, href: '/dashboard/templates', action: '編集' },
-		{ label: '送信済み', value: data.stats.sent, href: '/dashboard/history', action: '履歴' }
-	]);
+	const menu = [
+		{ label: '連絡先', href: '/dashboard/contacts', description: 'メールアドレス登録' },
+		{ label: '宛先リスト', href: '/dashboard/lists', description: 'TO/CC用のグループ管理' },
+		{ label: '定型文', href: '/dashboard/templates', description: '件名と本文の雛形' },
+		{ label: '送信済み', href: '/dashboard/history', description: '送信履歴と添付確認' }
+	];
 </script>
 
 <main class="dashboard">
@@ -33,12 +33,11 @@
 		</a>
 	</section>
 
-	<section class="stats">
-		{#each cards as card}
-			<a class="stat-card" href={card.href}>
-				<span>{card.label}</span>
-				<strong>{card.value}</strong>
-				<em>{card.action}</em>
+	<section class="menu-grid">
+		{#each menu as item}
+			<a class="menu-card" href={item.href}>
+				<strong>{item.label}</strong>
+				<span>{item.description}</span>
 			</a>
 		{/each}
 	</section>
@@ -148,12 +147,12 @@
 	.compose strong {
 		font-size: 30px;
 	}
-	.stats {
+	.menu-grid {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 12px;
 	}
-	.stat-card {
+	.menu-card {
 		display: grid;
 		gap: 8px;
 		padding: 18px;
@@ -163,15 +162,13 @@
 		color: inherit;
 		text-decoration: none;
 	}
-	.stat-card span,
-	.stat-card em {
+	.menu-card span {
 		color: #69746d;
-		font-size: 12px;
-		font-style: normal;
+		font-size: 13px;
+		line-height: 1.5;
 	}
-	.stat-card strong {
-		font-size: 34px;
-		line-height: 1;
+	.menu-card strong {
+		font-size: 18px;
 	}
 	.quick {
 		display: flex;
@@ -236,7 +233,7 @@
 			border-radius: 22px;
 			padding: 22px;
 		}
-		.stats {
+		.menu-grid {
 			grid-template-columns: repeat(2, 1fr);
 		}
 	}
@@ -253,12 +250,12 @@
 		.panel {
 			grid-column: 1;
 		}
-		.stats,
+		.menu-grid,
 		.quick {
 			grid-column: 2;
 		}
-		.stats {
-			grid-template-columns: repeat(2, 1fr);
+		.menu-grid {
+			grid-template-columns: 1fr;
 			align-self: start;
 		}
 		.quick {

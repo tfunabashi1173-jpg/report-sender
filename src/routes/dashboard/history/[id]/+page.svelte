@@ -20,7 +20,20 @@
 		{:else}
 			<div class="recipients">
 				{#each data.recipients as recipient}
-					<span>{recipient.name}<small>{recipient.email}</small></span>
+					<span>{recipient.kind === 'cc' ? 'CC' : 'TO'}: {recipient.name}<small>{recipient.email}</small></span>
+				{/each}
+			</div>
+		{/if}
+	</section>
+
+	<section class="card">
+		<h2>添付画像</h2>
+		{#if data.attachments.length === 0}
+			<p class="empty">添付なし</p>
+		{:else}
+			<div class="recipients">
+				{#each data.attachments as attachment}
+					<span>{attachment.fileName}<small>{Math.ceil(attachment.size / 1024)} KB</small></span>
 				{/each}
 			</div>
 		{/if}
@@ -110,12 +123,13 @@
 			grid-column: 1 / -1;
 		}
 		.card:first-of-type,
+		.card:nth-of-type(2),
 		.actions {
 			grid-column: 2;
 		}
-		.card:nth-of-type(2) {
+		.card:nth-of-type(3) {
 			grid-column: 1;
-			grid-row: 3 / span 2;
+			grid-row: 3 / span 3;
 		}
 		.actions {
 			position: sticky;

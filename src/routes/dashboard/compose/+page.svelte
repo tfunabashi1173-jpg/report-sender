@@ -26,7 +26,7 @@
 		<p class="error">送信メール設定が未設定です。管理者が設定するとサーバー送信できます。</p>
 	{/if}
 
-	<form class="composer" method="POST">
+	<form class="composer" method="POST" enctype="multipart/form-data">
 		<section class="card">
 			<h2>本文</h2>
 			<label>
@@ -52,21 +52,41 @@
 		</section>
 
 		<section class="card">
-			<h2>送信先</h2>
+			<h2>メイン宛先</h2>
 			<div class="checks">
 				{#each data.lists as list}
 					<label class="check">
-						<input type="checkbox" name="listIds" value={list.id} />
+						<input type="checkbox" name="toListIds" value={list.id} />
 						<span>リスト: {list.name}</span>
 					</label>
 				{/each}
 				{#each data.contacts as contact}
 					<label class="check">
-						<input type="checkbox" name="contactIds" value={contact.id} />
+						<input type="checkbox" name="toContactIds" value={contact.id} />
 						<span>{contact.name}<small>{contact.email}</small></span>
 					</label>
 				{/each}
 			</div>
+			<h2 class="cc-title">CC</h2>
+			<div class="checks">
+				{#each data.lists as list}
+					<label class="check">
+						<input type="checkbox" name="ccListIds" value={list.id} />
+						<span>リスト: {list.name}</span>
+					</label>
+				{/each}
+				{#each data.contacts as contact}
+					<label class="check">
+						<input type="checkbox" name="ccContactIds" value={contact.id} />
+						<span>{contact.name}<small>{contact.email}</small></span>
+					</label>
+				{/each}
+			</div>
+			<label class="attachment">
+				画像添付
+				<input name="attachments" type="file" accept="image/*" multiple />
+				<small>スマホではカメラまたはライブラリから選択できます。</small>
+			</label>
 			{#if data.contacts.length === 0}
 				<p class="empty">送信先がありません。<a href="/dashboard/contacts">連絡先を追加</a>してください。</p>
 			{/if}
@@ -95,6 +115,7 @@
 		padding: 18px;
 	}
 	h2 { margin: 0 0 14px; font-size: 18px; }
+	.cc-title { margin-top: 20px; }
 	label { display: grid; gap: 6px; margin-top: 12px; font-size: 13px; font-weight: 800; }
 	input, textarea, select {
 		box-sizing: border-box;
@@ -119,6 +140,7 @@
 	}
 	.check input { width: auto; }
 	.check span { display: grid; gap: 2px; }
+	.attachment { padding-top: 14px; border-top: 1px solid rgba(23,33,27,.12); }
 	small, .empty { color: #69746d; }
 	.actions {
 		position: sticky;

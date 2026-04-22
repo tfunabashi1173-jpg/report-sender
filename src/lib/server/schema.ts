@@ -131,13 +131,23 @@ export async function ensureRuntimeSchema(db: D1Database) {
 			)
 			.run();
 		await db.prepare('CREATE INDEX IF NOT EXISTS idx_report_recipients_report_id ON report_recipients(report_id)').run();
+		const reportRecipientColumns = await db
+			.prepare("SELECT name FROM pragma_table_info('report_recipients')")
+			.all<{ name: string }>();
+		const reportRecipientColumnNames = new Set((reportRecipientColumns.results ?? []).map((r) => r.name));
+		if (!reportRecipientColumnNames.has('kind')) {
+			await db.prepare("ALTER TABLE report_recipients ADD COLUMN kind TEXT NOT NULL DEFAULT 'to'").run();
+		}
 
 		await db
 			.prepare(
-				`CREATE TABLE IF NOT EXISTS mail_settings (
+				`CREATE TABLE IF NOT EXISTS smtp_settings (
 					id TEXT PRIMARY KEY,
-					provider TEXT NOT NULL CHECK(provider IN ('resend', 'sendgrid')),
-					api_key TEXT NOT NULL,
+					host TEXT NOT NULL,
+					port INTEGER NOT NULL,
+					secure_mode TEXT NOT NULL CHECK(secure_mode IN ('plain', 'starttls', 'tls')),
+					username TEXT,
+					password TEXT,
 					from_email TEXT NOT NULL,
 					from_name TEXT,
 					reply_to TEXT,
@@ -148,6 +158,22 @@ export async function ensureRuntimeSchema(db: D1Database) {
 				)`
 			)
 			.run();
+
+		await db
+			.prepare(
+				`CREATE TABLE IF NOT EXISTS report_attachments (
+					id TEXT PRIMARY KEY,
+					report_id TEXT NOT NULL,
+					r2_key TEXT NOT NULL,
+					file_name TEXT NOT NULL,
+					content_type TEXT NOT NULL,
+					size INTEGER NOT NULL,
+					created_at TEXT NOT NULL,
+					FOREIGN KEY (report_id) REFERENCES reports(id) ON DELETE CASCADE
+				)`
+			)
+			.run();
+		await db.prepare('CREATE INDEX IF NOT EXISTS idx_report_attachments_report_id ON report_attachments(report_id)').run();
 	})();
 
 	try {
