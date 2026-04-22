@@ -1,6 +1,11 @@
 <script lang="ts">
 	let { data, form } = $props();
+	let newName = $state('');
+	let newSubject = $state('');
 	let newBody = $state('');
+	let previewSite = $state('');
+	let previewFloor = $state('');
+	let previewPercent = $state('');
 
 	const tags = [
 		{ label: '今日の日付', token: '{today}', description: '例: 4月22日 21時10分' },
@@ -8,9 +13,28 @@
 		{ label: 'フロア', token: '{floor}', description: 'メール作成時に選んだ階を代入' },
 		{ label: '割合', token: '{%}', description: 'メール作成時に選んだ10〜100%を代入' }
 	];
+	const floors = Array.from({ length: 60 }, (_, index) => `${index + 1}階`);
+	const percents = Array.from({ length: 10 }, (_, index) => `${(index + 1) * 10}%`);
 
 	function appendTag(token: string) {
 		newBody = `${newBody}${newBody ? '\n' : ''}${token}`;
+	}
+
+	function formatToday() {
+		const now = new Date();
+		const pad = (value: number) => String(value).padStart(2, '0');
+		return `${now.getMonth() + 1}月${now.getDate()}日 ${pad(now.getHours())}時${pad(now.getMinutes())}分`;
+	}
+
+	function previewTags(value: string) {
+		return value
+			.replaceAll('{today}', formatToday())
+			.replaceAll('{{today}}', formatToday())
+			.replaceAll('{site}', previewSite)
+			.replaceAll('{{site}}', previewSite)
+			.replaceAll('{floor}', previewFloor)
+			.replaceAll('{{floor}}', previewFloor)
+			.replaceAll('{%}', previewPercent);
 	}
 </script>
 
@@ -41,26 +65,44 @@
 				<small>{'{site}'} はメール作成画面で入力する現場名、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。タグはテンプレート名・件名・本文で使えます。</small>
 			</div>
 			<div class="tag-settings">
-				<p>タグの設定場所</p>
-				<dl>
-					<div>
-						<dt>{'{site}'}</dt>
-						<dd>メール作成画面の「現場名」に入力します。現場ごとに変わるため、定型文ページでは値を固定保存しません。</dd>
-					</div>
-					<div>
-						<dt>{'{floor}'}</dt>
-						<dd>メール作成画面の「フロア」で選択します。</dd>
-					</div>
-					<div>
-						<dt>{'{%}'}</dt>
-						<dd>メール作成画面の「割合」で10〜100%を選択します。</dd>
-					</div>
-				</dl>
+				<p>タグ設定</p>
+				<label>
+					現場名 {'{site}'}
+					<input bind:value={previewSite} placeholder="例: 舟橋ビル改修工事" />
+				</label>
+				<label>
+					フロア {'{floor}'}
+					<select bind:value={previewFloor}>
+						<option value="">選択しない</option>
+						{#each floors as floor}
+							<option value={floor}>{floor}</option>
+						{/each}
+					</select>
+				</label>
+				<label>
+					割合 {'{%}'}
+					<select bind:value={previewPercent}>
+						<option value="">選択しない</option>
+						{#each percents as percent}
+							<option value={percent}>{percent}</option>
+						{/each}
+					</select>
+				</label>
+				<small>ここは定型文作成時の確認用です。保存する定型文にはタグを残し、実際の値はメール作成時にも入力できます。</small>
 			</div>
 			<form method="POST" action="?/save">
-				<input name="name" required placeholder={`テンプレート名 例: {site} 日次報告`} />
-				<input name="subject" required placeholder={`件名 例: {site} 本日の活動報告`} />
+				<input bind:value={newName} name="name" required placeholder={`テンプレート名 例: {site} 日次報告`} />
+				{#if newName}
+					<small class="preview">表示例: {previewTags(newName)}</small>
+				{/if}
+				<input bind:value={newSubject} name="subject" required placeholder={`件名 例: {site} 本日の活動報告`} />
+				{#if newSubject}
+					<small class="preview">表示例: {previewTags(newSubject)}</small>
+				{/if}
 				<textarea name="body" bind:value={newBody} rows="16" required placeholder={`本文を入力。例: {site} / {floor} / {%}`}></textarea>
+				{#if newBody}
+					<pre class="body-preview">{previewTags(newBody)}</pre>
+				{/if}
 				<div class="list-picker">
 					<strong>メイン宛先リスト</strong>
 					{#if data.lists.length === 0}
@@ -244,6 +286,38 @@
 		color: #69746d;
 		font-size: 12px;
 		line-height: 1.6;
+	}
+	.tag-settings label {
+		margin: 0;
+	}
+	.tag-settings select {
+		box-sizing: border-box;
+		width: 100%;
+		border: 1px solid rgba(23,33,27,.18);
+		border-radius: 14px;
+		background: white;
+		padding: 12px;
+		font: inherit;
+	}
+	.preview {
+		display: block;
+		margin-top: -4px;
+		border-radius: 12px;
+		background: #f8fafc;
+		padding: 10px 12px;
+	}
+	.body-preview {
+		overflow: auto;
+		max-height: 220px;
+		margin: -2px 0 0;
+		border-radius: 14px;
+		background: #f8fafc;
+		color: #3f4652;
+		padding: 12px;
+		white-space: pre-wrap;
+		font: inherit;
+		font-size: 13px;
+		line-height: 1.7;
 	}
 	form { display: grid; gap: 10px; margin-top: 10px; }
 	label { display: grid; gap: 6px; font-weight: 700; font-size: 13px; }
