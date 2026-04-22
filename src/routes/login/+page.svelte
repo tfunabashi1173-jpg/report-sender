@@ -15,13 +15,18 @@
 	let setupPassword = $state('');
 	let setupLoading = $state(false);
 
+	let recoveryName = $state('');
+	let recoveryPassword = $state('');
+	let recoveryLoading = $state(false);
+
 	async function loadBootstrapStatus() {
 		try {
 			const res = await fetch('/api/bootstrap/status');
 			const result = await res.json();
 			hasAdmin = Boolean(result.hasAdmin);
 		} catch {
-			hasAdmin = true;
+			// Status取得失敗時に初回作成をブロックしない
+			hasAdmin = false;
 		}
 	}
 
@@ -51,7 +56,7 @@
 			if (e?.name === 'NotAllowedError') {
 				error = 'キャンセルされました';
 			} else {
-				error = 'パスキーでログインできませんでした';
+				error = e?.message ?? 'パスキーでログインできませんでした';
 			}
 		} finally {
 			loading = false;
@@ -116,6 +121,37 @@
 		}
 	}
 
+	async function recoverAdmin() {
+		if (!recoveryName.trim() || !recoveryPassword) {
+			error = '管理者名と新しいパスワードを入力してください';
+			return;
+		}
+		if (recoveryPassword.length < 8) {
+			error = '新しいパスワードは8文字以上で入力してください';
+			return;
+		}
+
+		recoveryLoading = true;
+		error = '';
+		try {
+			const res = await fetch('/api/bootstrap/recover-admin', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					displayName: recoveryName,
+					password: recoveryPassword
+				})
+			});
+			const result = await res.json();
+			if (!res.ok) throw new Error(result.error ?? '管理者復旧に失敗しました');
+			goto('/dashboard');
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			recoveryLoading = false;
+		}
+	}
+
 	async function registerCurrentUserPasskey() {
 		if (
 			!window.PublicKeyCredential ||
@@ -173,6 +209,21 @@
 			</label>
 			<button class="btn-secondary" onclick={loginWithPassword} disabled={passwordLoading || !displayName.trim() || !password}>
 				{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
+			</button>
+		</section>
+
+		<section class="setup">
+			<h2>管理者復旧（パスキー全滅時）</h2>
+			<label>
+				管理者名
+				<input type="text" bind:value={recoveryName} placeholder="管理者名" />
+			</label>
+			<label>
+				新しいパスワード
+				<input type="password" bind:value={recoveryPassword} placeholder="8文字以上" />
+			</label>
+			<button class="btn-secondary" onclick={recoverAdmin} disabled={recoveryLoading || !recoveryName.trim() || !recoveryPassword}>
+				{recoveryLoading ? '復旧中...' : '管理者を復旧してログイン'}
 			</button>
 		</section>
 	{:else}
