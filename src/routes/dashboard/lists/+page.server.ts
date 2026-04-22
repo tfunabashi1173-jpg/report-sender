@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
 
@@ -57,7 +57,7 @@ export const actions: Actions = {
 			)
 			.bind(crypto.randomUUID(), name, description || null, user.id, now, now)
 			.run();
-		return { success: true };
+		redirect(303, '/dashboard/lists');
 	},
 	addMember: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
@@ -76,7 +76,7 @@ export const actions: Actions = {
 			.prepare('INSERT OR IGNORE INTO recipient_list_members (list_id, contact_id, created_at) VALUES (?1, ?2, ?3)')
 			.bind(listId, contactId, new Date().toISOString())
 			.run();
-		return { success: true };
+		redirect(303, '/dashboard/lists');
 	},
 	removeMember: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
@@ -91,13 +91,13 @@ export const actions: Actions = {
 			)
 			.bind(listId, user.id, contactId)
 			.run();
-		return { success: true };
+		redirect(303, '/dashboard/lists');
 	},
 	delete: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
 		const form = await request.formData();
 		const id = String(form.get('id') ?? '');
 		await locals.db.prepare('DELETE FROM recipient_lists WHERE id = ?1 AND created_by = ?2').bind(id, user.id).run();
-		return { success: true };
+		redirect(303, '/dashboard/lists');
 	}
 };

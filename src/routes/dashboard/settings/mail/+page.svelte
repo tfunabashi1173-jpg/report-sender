@@ -1,5 +1,14 @@
 <script lang="ts">
 	let { data, form } = $props();
+
+	function statusMessage(status: string | null | undefined) {
+		if (status === 'saved') return 'SMTP設定を保存しました';
+		if (status === 'connected') return 'SMTPサーバーへの接続と認証に成功しました';
+		if (status === 'test-sent') return 'テストメールを送信しました';
+		return '';
+	}
+
+	let successMessage = $derived(statusMessage(data.status));
 </script>
 
 <main class="page">
@@ -13,8 +22,8 @@
 	{#if form?.error}
 		<p class="error">{form.error}</p>
 	{/if}
-	{#if form?.success}
-		<p class="success">{form.success}</p>
+	{#if successMessage}
+		<p class="success">{successMessage}</p>
 	{/if}
 
 	<section class="card">

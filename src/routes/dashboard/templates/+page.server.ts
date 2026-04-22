@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
 
@@ -47,13 +47,13 @@ export const actions: Actions = {
 				.run();
 		}
 
-		return { success: true };
+		redirect(303, '/dashboard/templates');
 	},
 	delete: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
 		const form = await request.formData();
 		const id = String(form.get('id') ?? '');
 		await locals.db.prepare('DELETE FROM mail_templates WHERE id = ?1 AND created_by = ?2').bind(id, user.id).run();
-		return { success: true };
+		redirect(303, '/dashboard/templates');
 	}
 };

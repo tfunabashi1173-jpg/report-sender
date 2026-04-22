@@ -1,9 +1,9 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/guards';
 import { sendTestMail, testSmtpConnection } from '$lib/server/mailer';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	await requireAdmin(locals);
 	const settings = await locals.db
 		.prepare(
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			updatedAt: string;
 		}>();
 
-	return { settings };
+	return { settings, status: url.searchParams.get('status') };
 };
 
 export const actions: Actions = {
@@ -74,13 +74,13 @@ export const actions: Actions = {
 			.bind(host, port, secureMode, username || null, password, fromEmail, fromName || null, replyTo || null, now, user.id)
 			.run();
 
-		return { success: 'SMTP設定を保存しました' };
+		redirect(303, '/dashboard/settings/mail?status=saved');
 	},
 	testConnection: async ({ locals }) => {
 		await requireAdmin(locals);
 		try {
 			await testSmtpConnection(locals.db);
-			return { success: 'SMTPサーバーへの接続と認証に成功しました' };
+			redirect(303, '/dashboard/settings/mail?status=connected');
 		} catch (e: any) {
 			return fail(400, { error: e?.message ?? 'SMTP接続テストに失敗しました' });
 		}
@@ -94,7 +94,7 @@ export const actions: Actions = {
 		}
 		try {
 			await sendTestMail(locals.db, testEmail);
-			return { success: `テストメールを ${testEmail} に送信しました` };
+			redirect(303, '/dashboard/settings/mail?status=test-sent');
 		} catch (e: any) {
 			return fail(400, { error: e?.message ?? 'テストメール送信に失敗しました' });
 		}

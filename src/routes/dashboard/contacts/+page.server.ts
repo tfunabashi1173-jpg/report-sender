@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireDashboardUser } from '$lib/server/guards';
 
@@ -45,13 +45,13 @@ export const actions: Actions = {
 			.bind(crypto.randomUUID(), name, email, organization || null, note || null, user.id, now, now)
 			.run();
 
-		return { success: true };
+		redirect(303, '/dashboard/contacts');
 	},
 	delete: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
 		const form = await request.formData();
 		const id = String(form.get('id') ?? '');
 		await locals.db.prepare('DELETE FROM contacts WHERE id = ?1 AND created_by = ?2').bind(id, user.id).run();
-		return { success: true };
+		redirect(303, '/dashboard/contacts');
 	}
 };
