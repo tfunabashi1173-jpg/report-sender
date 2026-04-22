@@ -1,42 +1,47 @@
-# sv
+# report-sender
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Cloudflare Workers (SvelteKit) で動く報告メール送信システムです。
+現在は `Cloudflare D1 + R2` 前提です。
 
-## Creating a project
+## Stack
 
-If you're seeing this, you've probably already done this step. Congrats!
+- SvelteKit + adapter-cloudflare
+- D1: ユーザー、招待、パスキー、セッション管理
+- R2: ファイル保管（今後の添付/テンプレート用途）
+- WebAuthn: パスキー認証
+
+## Setup
+
+1. 依存インストール
 
 ```sh
-# create a new project
-npx sv create my-app
+npm install
 ```
 
-To recreate this project with the same configuration:
+2. D1 スキーマ適用
 
 ```sh
-# recreate this project
-npx sv@0.15.1 create --template minimal --types ts --install npm report-sender
+wrangler d1 execute report-sender --file=./db/schema.sql
 ```
 
-## Developing
+3. `wrangler.jsonc` の値を設定
+- `d1_databases[0].database_id`
+- `r2_buckets[0].bucket_name`
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+4. 開発起動
 
 ```sh
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+## Auth Flow
 
-To create a production version of your app:
+1. 管理者が招待リンク作成
+2. 招待リンクでユーザー登録
+3. サーバーが Cookie セッション発行
+4. 任意でパスキー登録、次回以降ログイン
 
-```sh
-npm run build
-```
+## Initial Admin
 
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- 管理者が0人の状態では招待リンクを作成できないため、`/login` の「初期管理者を作成」から最初の管理者を1名作成してください。
+- `BOOTSTRAP_ADMIN_KEY` を Workers 環境変数に設定した場合、同じ値の入力が必要です。

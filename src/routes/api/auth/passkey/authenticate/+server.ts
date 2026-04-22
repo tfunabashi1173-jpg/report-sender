@@ -1,61 +1,59 @@
 import { json } from '@sveltejs/kit';
-import {
-	generateAuthenticationOptions,
-	verifyAuthenticationResponse
-} from '@simplewebauthn/server';
+import { generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
 import type { RequestHandler } from './$types';
-import { RP_ID, updatePasskeyCounter } from '$lib/auth/passkey';
-import { createServerClient } from '@supabase/ssr';
+import {
+	getRpId,
+	updatePasskeyCounter,
+	getPasskeyCredentialById,
+	saveChallenge,
+	getChallenge,
+	deleteChallenge
+} from '$lib/auth/passkey';
+import {
+	clearAuthChallengeCookie,
+	createSession,
+	getAuthChallengeCookie,
+	setAuthChallengeCookie,
+	setSessionCookie
+} from '$lib/server/auth';
 
-const challenges = new Map<string, string>();
-const ANON_CHALLENGE_KEY = '__anon__';
+const AUTH_KIND = 'passkey-auth';
 
-export const GET: RequestHandler = async ({ locals, platform }) => {
+export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 	const options = await generateAuthenticationOptions({
-		rpID: RP_ID,
+		rpID: getRpId(url),
 		userVerification: 'required',
 		allowCredentials: []
 	});
-	challenges.set(ANON_CHALLENGE_KEY, options.challenge);
+
+	const challengeScope = crypto.randomUUID();
+	await saveChallenge(locals.db, AUTH_KIND, challengeScope, options.challenge);
+	setAuthChallengeCookie(cookies, challengeScope);
 	return json(options);
 };
 
-export const POST: RequestHandler = async ({ request, locals, platform, cookies }) => {
-	const challenge = challenges.get(ANON_CHALLENGE_KEY);
-	if (!challenge) return json({ error: 'Challenge expired' }, { status: 400 });
+export const POST: RequestHandler = async ({ request, locals, cookies, url }) => {
+	const challengeScope = getAuthChallengeCookie(cookies);
+	if (!challengeScope) return json({ error: 'Challenge expired' }, { status: 400 });
 
-	const supabaseUrl = platform?.env.PUBLIC_SUPABASE_URL ?? '';
-	const supabaseKey = platform?.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
-
-	const supabase = createServerClient(supabaseUrl, supabaseKey, {
-		db: { schema: 'report_sender' },
-		cookies: {
-			getAll: () => cookies.getAll(),
-			setAll: (cookiesToSet) => {
-				cookiesToSet.forEach(({ name, value, options }) =>
-					cookies.set(name, value, { ...options, path: '/' })
-				);
-			}
-		}
-	});
+	const challenge = await getChallenge(locals.db, AUTH_KIND, challengeScope);
+	if (!challenge) {
+		clearAuthChallengeCookie(cookies);
+		return json({ error: 'Challenge expired' }, { status: 400 });
+	}
 
 	try {
 		const body = await request.json();
 		const credentialId = body.id;
-
-		const { data: cred } = await supabase
-			.from('passkey_credentials')
-			.select('*')
-			.eq('credential_id', credentialId)
-			.single();
+		const cred = await getPasskeyCredentialById(locals.db, credentialId);
 
 		if (!cred) return json({ error: 'Credential not found' }, { status: 404 });
 
 		const verification = await verifyAuthenticationResponse({
 			response: body,
 			expectedChallenge: challenge,
-			expectedOrigin: `https://${RP_ID}`,
-			expectedRPID: RP_ID,
+			expectedOrigin: url.origin,
+			expectedRPID: getRpId(url),
 			requireUserVerification: true,
 			credential: {
 				id: cred.credential_id,
@@ -68,12 +66,13 @@ export const POST: RequestHandler = async ({ request, locals, platform, cookies 
 			return json({ error: '認証に失敗しました' }, { status: 401 });
 		}
 
-		await updatePasskeyCounter(supabase, credentialId, verification.authenticationInfo.newCounter);
-		challenges.delete(ANON_CHALLENGE_KEY);
+		await updatePasskeyCounter(locals.db, credentialId, verification.authenticationInfo.newCounter);
+		await deleteChallenge(locals.db, AUTH_KIND, challengeScope);
+		clearAuthChallengeCookie(cookies);
 
-		// Supabase Admin APIでセッション発行（サービスロールキーが必要）
-		// 暫定: user_idをレスポンスで返してクライアント側でセッション確立
-		return json({ success: true, userId: cred.user_id });
+		const { sessionId, expiresAt } = await createSession(locals.db, cred.user_id);
+		setSessionCookie(cookies, sessionId, expiresAt);
+		return json({ success: true });
 	} catch (e: any) {
 		return json({ error: e.message }, { status: 400 });
 	}

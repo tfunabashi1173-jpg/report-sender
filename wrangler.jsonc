@@ -7,8 +7,17 @@
 		"directory": ".svelte-kit/cloudflare",
 		"binding": "ASSETS"
 	},
-	"vars": {
-		"PUBLIC_SUPABASE_URL": "https://ywujfwzcxaehfqlfkskf.supabase.co",
-		"PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3dWpmd3pjeGFlaGZxbGZrc2tmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxNTAxMzgsImV4cCI6MjA3OTcyNjEzOH0.B4BgOlv6RV4bnSFcVglQxgV_IRvCYihk1wGM2_VAcXc"
-	}
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "report-sender",
+			"database_id": "049cd874-d7b5-4008-9e52-a3b2a27040e0"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "REPORT_ASSETS",
+			"bucket_name": "report-sender-assets"
+		}
+	]
 }

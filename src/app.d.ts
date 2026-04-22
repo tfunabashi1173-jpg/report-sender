@@ -1,21 +1,26 @@
-import type { SupabaseClient, Session, User } from '@supabase/supabase-js';
+import type { AppSession, AppUser } from '$lib/server/auth';
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
 declare global {
 	namespace App {
 		interface Locals {
-			supabase: SupabaseClient;
-			safeGetSession: () => Promise<{ session: Session | null; user: User | null }>;
+			db: D1Database;
+			session: AppSession | null;
+			user: AppUser | null;
+			safeGetSession: () => Promise<{ session: AppSession | null; user: AppUser | null }>;
 		}
 		interface PageData {
-			session: Session | null;
-			supabaseUrl: string;
-			supabaseAnonKey: string;
+			session: AppSession | null;
+			user: AppUser | null;
 		}
 		interface Platform {
 			env: {
-				PUBLIC_SUPABASE_URL: string;
-				PUBLIC_SUPABASE_ANON_KEY: string;
-				SUPABASE_SERVICE_ROLE_KEY: string;
+				DB: D1Database;
+				REPORT_ASSETS: R2Bucket;
+				BOOTSTRAP_ADMIN_KEY?: string;
+				TWILIO_ACCOUNT_SID?: string;
+				TWILIO_AUTH_TOKEN?: string;
+				TWILIO_PHONE_NUMBER?: string;
 			};
 			context: {
 				waitUntil(promise: Promise<unknown>): void;

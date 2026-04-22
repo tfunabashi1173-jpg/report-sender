@@ -4,7 +4,7 @@
 	let { data } = $props();
 
 	async function logout() {
-		await data.supabase.auth.signOut();
+		await fetch('/api/auth/logout', { method: 'POST' });
 		goto('/login');
 	}
 </script>
@@ -15,7 +15,7 @@
 		<button class="btn-link" onclick={logout}>ログアウト</button>
 	</header>
 
-	<p class="user">ログイン中: {data.session?.user.phone ?? data.session?.user.email}</p>
+	<p class="user">ログイン中: {data.user?.phone ?? data.user?.email ?? data.user?.id}</p>
 
 	{#if data.profile?.role === 'admin'}
 		<section class="admin-section">

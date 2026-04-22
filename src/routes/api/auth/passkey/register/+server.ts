@@ -1,26 +1,32 @@
 import { json } from '@sveltejs/kit';
-import {
-	generateRegistrationOptions,
-	verifyRegistrationResponse
-} from '@simplewebauthn/server';
+import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import type { RequestHandler } from './$types';
-import { RP_NAME, RP_ID, getPasskeyCredentials, savePasskeyCredential } from '$lib/auth/passkey';
+import {
+	RP_NAME,
+	getRpId,
+	getPasskeyCredentials,
+	savePasskeyCredential,
+	saveChallenge,
+	getChallenge,
+	deleteChallenge
+} from '$lib/auth/passkey';
 
-const challenges = new Map<string, string>();
+const REGISTER_KIND = 'passkey-register';
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
 	const { user } = await locals.safeGetSession();
 	if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-	const existing = await getPasskeyCredentials(locals.supabase, user.id);
+	const existing = await getPasskeyCredentials(locals.db, user.id);
 	const excludeCredentials = existing.map((c) => ({
 		id: c.credential_id,
 		type: 'public-key' as const
 	}));
 
+	const rpId = getRpId(url);
 	const options = await generateRegistrationOptions({
 		rpName: RP_NAME,
-		rpID: RP_ID,
+		rpID: rpId,
 		userID: new TextEncoder().encode(user.id),
 		userName: user.phone ?? user.email ?? user.id,
 		attestationType: 'none',
@@ -32,15 +38,15 @@ export const GET: RequestHandler = async ({ locals }) => {
 		}
 	});
 
-	challenges.set(user.id, options.challenge);
+	await saveChallenge(locals.db, REGISTER_KIND, user.id, options.challenge);
 	return json(options);
 };
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals, url }) => {
 	const { user } = await locals.safeGetSession();
 	if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-	const challenge = challenges.get(user.id);
+	const challenge = await getChallenge(locals.db, REGISTER_KIND, user.id);
 	if (!challenge) return json({ error: 'Challenge not found' }, { status: 400 });
 
 	try {
@@ -48,8 +54,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const verification = await verifyRegistrationResponse({
 			response: body,
 			expectedChallenge: challenge,
-			expectedOrigin: `https://${RP_ID}`,
-			expectedRPID: RP_ID,
+			expectedOrigin: url.origin,
+			expectedRPID: getRpId(url),
 			requireUserVerification: true
 		});
 
@@ -59,14 +65,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		const { credential } = verification.registrationInfo;
 		await savePasskeyCredential(
-			locals.supabase,
+			locals.db,
 			user.id,
 			credential.id,
 			Buffer.from(credential.publicKey).toString('base64'),
 			credential.counter
 		);
 
-		challenges.delete(user.id);
+		await deleteChallenge(locals.db, REGISTER_KIND, user.id);
 		return json({ success: true });
 	} catch (e: any) {
 		return json({ error: e.message }, { status: 400 });

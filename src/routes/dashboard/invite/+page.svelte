@@ -1,7 +1,11 @@
 <script lang="ts">
+	import QRCode from 'qrcode';
+
 	let displayName = $state('');
 	let phone = $state('');
 	let generatedUrl = $state('');
+	let qrCodeDataUrl = $state('');
+	let canShare = $state(false);
 	let loading = $state(false);
 	let error = $state('');
 	let copied = $state(false);
@@ -10,6 +14,7 @@
 		loading = true;
 		error = '';
 		generatedUrl = '';
+		qrCodeDataUrl = '';
 		try {
 			const res = await fetch('/api/dashboard/invite', {
 				method: 'POST',
@@ -19,6 +24,10 @@
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error);
 			generatedUrl = result.url;
+			qrCodeDataUrl = await QRCode.toDataURL(result.url, {
+				width: 240,
+				margin: 1
+			});
 		} catch (e: any) {
 			error = e.message;
 		} finally {
@@ -31,6 +40,23 @@
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
+
+	async function shareUrl() {
+		if (!generatedUrl || !canShare) return;
+		try {
+			await navigator.share({
+				title: '招待リンク',
+				text: '報告メール送信システムの招待リンクです',
+				url: generatedUrl
+			});
+		} catch {
+			// User canceled or share target unavailable.
+		}
+	}
+
+	$effect(() => {
+		canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+	});
 </script>
 
 <main class="page">
@@ -64,7 +90,16 @@
 					{copied ? 'コピー済み ✓' : 'コピー'}
 				</button>
 			</div>
+			{#if canShare}
+				<button class="btn-share" onclick={shareUrl}>共有して送る</button>
+			{/if}
 			<p class="hint">このURLをLINEやメッセージアプリで送ってください</p>
+			{#if qrCodeDataUrl}
+				<div class="qr-wrap">
+					<p class="qr-label">別端末から読み取る場合</p>
+					<img class="qr-image" src={qrCodeDataUrl} alt="招待リンクのQRコード" />
+				</div>
+			{/if}
 		</div>
 	{/if}
 </main>
@@ -126,6 +161,36 @@
 		white-space: nowrap;
 		font-size: 13px;
 	}
+	.btn-share {
+		padding: 10px 12px;
+		background: #1a8f3a;
+		color: white;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 14px;
+	}
 	.hint { font-size: 12px; color: #888; margin: 0; }
+	.qr-wrap {
+		margin-top: 8px;
+		padding-top: 12px;
+		border-top: 1px solid #d7e8ff;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		align-items: center;
+	}
+	.qr-label {
+		font-size: 12px;
+		color: #555;
+		margin: 0;
+	}
+	.qr-image {
+		width: 180px;
+		height: 180px;
+		border: 1px solid #c8defd;
+		border-radius: 8px;
+		background: #fff;
+	}
 	.error { color: #e00; font-size: 14px; }
 </style>

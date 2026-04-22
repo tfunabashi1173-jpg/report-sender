@@ -21,11 +21,6 @@
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error);
 
-			await data.supabase.auth.setSession({
-				access_token: result.accessToken,
-				refresh_token: result.refreshToken
-			});
-
 			const passkeyAvailable =
 				window.PublicKeyCredential &&
 				(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
@@ -57,7 +52,7 @@
 			const result = await verifyRes.json();
 			if (result.success) localStorage.setItem('passkey_registered', '1');
 			goto('/dashboard');
-		} catch (e) {
+		} catch {
 			error = 'パスキー登録に失敗しました';
 			goto('/dashboard');
 		} finally {
