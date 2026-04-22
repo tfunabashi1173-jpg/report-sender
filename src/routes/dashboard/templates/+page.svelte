@@ -4,7 +4,9 @@
 
 	const tags = [
 		{ label: '今日の日付', token: '{today}', description: '例: 4月22日 21時10分' },
-		{ label: 'フロア', token: '{floor}', description: 'メール作成時に選んだ階を代入' }
+		{ label: 'フロア', token: '{floor}', description: 'メール作成時に選んだ階を代入' },
+		{ label: '今日の日付', token: '{%today%}', description: '例: 4月22日 21時10分' },
+		{ label: 'フロア', token: '{%floor%}', description: 'メール作成時に選んだ階を代入' }
 	];
 
 	function appendTag(token: string) {
@@ -36,12 +38,12 @@
 						</button>
 					{/each}
 				</div>
-				<small>{'{today}'} は現在日時、{'{floor}'} は選択したフロアに置換されます。</small>
+				<small>{'{today}'} / {'{%today%}'} は現在日時、{'{floor}'} / {'{%floor%}'} は選択したフロアに置換されます。</small>
 			</div>
 			<form method="POST" action="?/save">
 				<input name="name" required placeholder="テンプレート名 例: 日次報告" />
 				<input name="subject" required placeholder="件名 例: 本日の活動報告" />
-				<textarea name="body" bind:value={newBody} rows="16" required placeholder={`本文を入力。例: {today} / {floor}`}></textarea>
+				<textarea name="body" bind:value={newBody} rows="16" required placeholder={`本文を入力。例: {today} / {%floor%}`}></textarea>
 				<button>保存する</button>
 			</form>
 		</section>
@@ -68,7 +70,7 @@
 							</label>
 							<label>
 								本文
-								<textarea name="body" rows="12" required placeholder={`{today} や {floor} が使えます`}>{template.body}</textarea>
+								<textarea name="body" rows="12" required placeholder={`{today} / {%today%} や {floor} / {%floor%} が使えます`}>{template.body}</textarea>
 							</label>
 							<button>更新する</button>
 						</form>

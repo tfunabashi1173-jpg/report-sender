@@ -2,12 +2,26 @@
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { data, children } = $props();
+
+	function handleSubmit(event: SubmitEvent) {
+		const form = event.target;
+		if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== 'post') return;
+
+		if (form.dataset.submitting === 'true') {
+			event.preventDefault();
+			return;
+		}
+
+		form.dataset.submitting = 'true';
+	}
 </script>
 
 <svelte:head>
 	<title>報告メール送信システム</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
+
+<svelte:document onsubmit={handleSubmit} />
 
 {@render children()}
 
@@ -32,5 +46,10 @@
 	.app-footer a {
 		color: #666;
 		text-decoration: none;
+	}
+	:global(form[data-submitting='true'] button:not([type='button']),
+		form[data-submitting='true'] input[type='submit']) {
+		opacity: 0.58;
+		pointer-events: none;
 	}
 </style>
