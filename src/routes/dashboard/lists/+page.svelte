@@ -4,6 +4,7 @@
 	let { data, form } = $props();
 	let selectedOrganizations = $state<Record<string, string>>({});
 	let selectedKinds = $state<Record<string, 'to' | 'cc'>>({});
+	let expandedListId = $state<string | null>(null);
 	const defaultsStorageKey = 'report-sender:recipient-list-defaults';
 
 	function membersFor(listId: string) {
@@ -18,6 +19,10 @@
 		const organization = selectedOrganizations[listId] ?? '';
 		if (!organization) return [];
 		return data.contacts.filter((contact) => (contact.organization?.trim() || '所属なし') === organization);
+	}
+
+	function toggleList(listId: string) {
+		expandedListId = expandedListId === listId ? null : listId;
 	}
 
 	function saveDefaults(listId: string) {
@@ -94,68 +99,78 @@
 				{#each data.lists as list}
 					<article class="list-card">
 						<div class="list-head">
-							<div>
+							<button
+								class="list-summary"
+								type="button"
+								aria-expanded={expandedListId === list.id}
+								onclick={() => toggleList(list.id)}
+							>
 								<h2>{list.name}</h2>
 								<p>{list.description ?? '説明なし'} / TO {list.toCount}件 / CC {list.ccCount}件</p>
-							</div>
+								<span>{expandedListId === list.id ? '閉じる' : '編集'}</span>
+							</button>
 							<form method="POST" action="?/delete">
 								<input type="hidden" name="id" value={list.id} />
 								<button class="danger">削除</button>
 							</form>
 						</div>
 
-						<form class="add" method="POST" action="?/addMember">
-							<input type="hidden" name="listId" value={list.id} />
-							<div class="recipient-row">
-								<label>
-									所属
-									<select value={selectedOrganizations[list.id] ?? ''} onchange={(event) => setOrganization(list.id, event)} required>
-										<option value="">所属を選択</option>
-										{#each organizations as organization}
-											<option value={organization}>{organization}</option>
-										{/each}
-									</select>
-								</label>
-								<label>
-									名前
-									<select name="contactId" required disabled={!selectedOrganizations[list.id]}>
-										<option value="">名前を選択</option>
-										{#each contactsFor(list.id) as contact}
-											<option value={contact.id}>{contact.name} / {contact.email}</option>
-										{/each}
-									</select>
-								</label>
-								<label>
-									区分
-									<select name="kind" value={selectedKinds[list.id] ?? 'to'} onchange={(event) => setKind(list.id, event)}>
-										<option value="to">TO</option>
-										<option value="cc">CC</option>
-									</select>
-								</label>
-							</div>
-							<button>追加・更新</button>
-						</form>
+						{#if expandedListId === list.id}
+							<div class="list-panel">
+								<form class="add" method="POST" action="?/addMember">
+									<input type="hidden" name="listId" value={list.id} />
+									<div class="recipient-row">
+										<label>
+											所属
+											<select value={selectedOrganizations[list.id] ?? ''} onchange={(event) => setOrganization(list.id, event)} required>
+												<option value="">所属を選択</option>
+												{#each organizations as organization}
+													<option value={organization}>{organization}</option>
+												{/each}
+											</select>
+										</label>
+										<label>
+											名前
+											<select name="contactId" required disabled={!selectedOrganizations[list.id]}>
+												<option value="">名前を選択</option>
+												{#each contactsFor(list.id) as contact}
+													<option value={contact.id}>{contact.name} / {contact.email}</option>
+												{/each}
+											</select>
+										</label>
+										<label>
+											区分
+											<select name="kind" value={selectedKinds[list.id] ?? 'to'} onchange={(event) => setKind(list.id, event)}>
+												<option value="to">TO</option>
+												<option value="cc">CC</option>
+											</select>
+										</label>
+									</div>
+									<button>追加・更新</button>
+								</form>
 
-						<div class="members">
-							{#each ['to', 'cc'] as kind}
-								<div class="member-section">
-									<strong>{kind === 'to' ? 'TO' : 'CC'}</strong>
-									{#each membersFor(list.id).filter((member) => member.kind === kind) as member}
-										<form class="member" method="POST" action="?/removeMember">
-											<input type="hidden" name="listId" value={list.id} />
-											<input type="hidden" name="contactId" value={member.contactId} />
-											<span>
-												{member.name}
-												<small>{member.organization ?? '所属なし'} / {member.email}</small>
-											</span>
-											<button class="plain">外す</button>
-										</form>
-									{:else}
-										<p class="empty-inline">未登録</p>
+								<div class="members">
+									{#each ['to', 'cc'] as kind}
+										<div class="member-section">
+											<strong>{kind === 'to' ? 'TO' : 'CC'}</strong>
+											{#each membersFor(list.id).filter((member) => member.kind === kind) as member}
+												<form class="member" method="POST" action="?/removeMember">
+													<input type="hidden" name="listId" value={list.id} />
+													<input type="hidden" name="contactId" value={member.contactId} />
+													<span>
+														{member.name}
+														<small>{member.organization ?? '所属なし'} / {member.email}</small>
+													</span>
+													<button class="plain">外す</button>
+												</form>
+											{:else}
+												<p class="empty-inline">未登録</p>
+											{/each}
+										</div>
 									{/each}
 								</div>
-							{/each}
-						</div>
+							</div>
+						{/if}
 					</article>
 				{/each}
 			{/if}
@@ -197,9 +212,34 @@
 	}
 	button { border: none; border-radius: 14px; background: #f08a24; color: #1c1207; font-weight: 800; padding: 12px; }
 	.lists { display: grid; gap: 12px; }
-	.list-head { display: flex; justify-content: space-between; gap: 12px; align-items: start; }
+	.list-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+	.list-summary {
+		display: grid;
+		gap: 4px;
+		width: 100%;
+		border-radius: 18px;
+		background: transparent;
+		color: #24262b;
+		padding: 0;
+		text-align: left;
+	}
+	.list-summary:hover {
+		background: #f8fafc;
+	}
+	.list-summary span {
+		color: #1f2937;
+		font-size: 12px;
+		font-weight: 850;
+	}
 	.list-head p, .empty, small, .empty-inline { color: #69746d; }
-	.add { display: grid; gap: 12px; margin: 14px 0; }
+	.list-panel {
+		display: grid;
+		gap: 14px;
+		margin-top: 14px;
+		border-top: 1px solid #eef1f5;
+		padding-top: 14px;
+	}
+	.add { display: grid; gap: 12px; }
 	.recipient-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 120px; gap: 10px; }
 	.members { display: grid; gap: 10px; }
 	.member-section {
