@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
@@ -7,11 +6,11 @@
 	let loading = $state(false);
 	let error = $state('');
 	let hasAdmin = $state(Boolean(data.hasAdmin));
+	let passkeyInProgress = $state(false);
 
 	let displayName = $state('');
 	let password = $state('');
 	let passwordLoading = $state(false);
-	let autoPasswordLoginAttempted = $state(false);
 	let displayNameInputEl = $state<HTMLInputElement | null>(null);
 	let passwordInputEl = $state<HTMLInputElement | null>(null);
 
@@ -36,8 +35,10 @@
 
 	async function loginWithPasskey() {
 		loading = true;
+		passkeyInProgress = true;
 		error = '';
 		try {
+			(document.activeElement as HTMLElement | null)?.blur();
 			const { startAuthentication } = await import('@simplewebauthn/browser');
 			const optRes = await fetch('/api/auth/passkey/authenticate', { method: 'GET' });
 			const opts = await optRes.json();
@@ -53,7 +54,8 @@
 			const result = await verifyRes.json();
 
 			if (result.success) {
-				goto('/dashboard');
+				(document.activeElement as HTMLElement | null)?.blur();
+				window.location.assign('/dashboard');
 			} else {
 				error = result.error ?? '認証に失敗しました';
 			}
@@ -65,6 +67,8 @@
 			}
 		} finally {
 			loading = false;
+			passkeyInProgress = false;
+			(document.activeElement as HTMLElement | null)?.blur();
 		}
 	}
 
@@ -93,7 +97,7 @@
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? 'パスワードログインに失敗しました');
-			goto('/dashboard');
+			window.location.assign('/dashboard');
 		} catch (e: any) {
 			error = e.message;
 		} finally {
@@ -109,25 +113,6 @@
 			password = passwordInputEl.value;
 		}
 	}
-
-	$effect(() => {
-		if (!hasAdmin || passwordLoading) return;
-		const credentials = readPasswordCredentials();
-		const ready = credentials.name.length > 0 && credentials.secret.length > 0;
-		if (!ready) {
-			autoPasswordLoginAttempted = false;
-			return;
-		}
-		if (autoPasswordLoginAttempted) return;
-
-		// Mobile autofill/passkey suggestion can populate fields without submit.
-		// Auto-continue once when both values appear.
-		const timer = setTimeout(() => {
-			autoPasswordLoginAttempted = true;
-			void loginWithPassword();
-		}, 500);
-		return () => clearTimeout(timer);
-	});
 
 	async function createFirstAdmin() {
 		if (!setupName.trim() || !setupPassword) {
@@ -153,12 +138,7 @@
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? '初期管理者の作成に失敗しました');
 			hasAdmin = true;
-			try {
-				await registerCurrentUserPasskey();
-			} catch (passkeyError) {
-				console.warn('Passkey registration skipped after admin creation', passkeyError);
-			}
-			goto('/dashboard');
+			window.location.assign('/dashboard');
 		} catch (e: any) {
 			error = e.message;
 			await loadBootstrapStatus();
@@ -190,7 +170,7 @@
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? '管理者復旧に失敗しました');
-			goto('/dashboard');
+			window.location.assign('/dashboard');
 		} catch (e: any) {
 			error = e.message;
 		} finally {
@@ -198,43 +178,8 @@
 		}
 	}
 
-	async function registerCurrentUserPasskey() {
-		const { startRegistration } = await import('@simplewebauthn/browser');
-		if (
-			!window.PublicKeyCredential ||
-			!(await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())
-		) {
-			throw new Error('この端末ではパスキーを作成できません');
-		}
-
-		const optRes = await fetch('/api/auth/passkey/register', { method: 'GET' });
-		const opts = await optRes.json();
-		if (!optRes.ok) throw new Error(opts.error ?? 'パスキー登録開始に失敗しました');
-
-		const credential = await startRegistration({ optionsJSON: opts });
-		const verifyRes = await fetch('/api/auth/passkey/register', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(credential)
-		});
-		const verifyResult = await verifyRes.json();
-		if (!verifyRes.ok || !verifyResult.success) {
-			throw new Error(verifyResult.error ?? 'パスキー登録に失敗しました');
-		}
-	}
-
 	onMount(() => {
 		void loadBootstrapStatus();
-		const timer = setInterval(() => {
-			syncAutofilledValues();
-			if (!hasAdmin || passwordLoading || autoPasswordLoginAttempted) return;
-			const credentials = readPasswordCredentials();
-			if (credentials.name && credentials.secret) {
-				autoPasswordLoginAttempted = true;
-				void loginWithPassword();
-			}
-		}, 400);
-		return () => clearInterval(timer);
 	});
 </script>
 
@@ -263,6 +208,8 @@
 						bind:value={displayName}
 						placeholder="山田 太郎"
 						autocomplete="username"
+						disabled={passkeyInProgress}
+						tabindex={passkeyInProgress ? -1 : 0}
 						oninput={syncAutofilledValues}
 						onchange={syncAutofilledValues}
 					/>
@@ -275,11 +222,13 @@
 						bind:value={password}
 						placeholder="8文字以上"
 						autocomplete="current-password"
+						disabled={passkeyInProgress}
+						tabindex={passkeyInProgress ? -1 : 0}
 						oninput={syncAutofilledValues}
 						onchange={syncAutofilledValues}
 					/>
 				</label>
-				<button type="submit" class="btn-secondary" disabled={passwordLoading}>
+				<button type="submit" class="btn-secondary" disabled={passwordLoading || passkeyInProgress}>
 					{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
 				</button>
 			</form>
@@ -317,7 +266,7 @@
 				onclick={createFirstAdmin}
 				disabled={setupLoading || !setupName.trim() || !setupPassword}
 			>
-				{setupLoading ? '作成中...' : '初期管理者を作成してパスキー登録'}
+				{setupLoading ? '作成中...' : '初期管理者を作成してログイン'}
 			</button>
 		</section>
 	{/if}
