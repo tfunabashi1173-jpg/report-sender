@@ -272,11 +272,36 @@
 			<h2>初期セットアップ</h2>
 			<label>
 				管理者名
-				<input type="text" bind:value={setupName} placeholder="管理者" />
+				<input
+					type="text"
+					name="initial-admin-display-label"
+					bind:value={setupName}
+					placeholder="管理者"
+					autocomplete="off"
+					autocapitalize="none"
+					autocorrect="off"
+					spellcheck="false"
+					data-1p-ignore
+					data-lpignore="true"
+					data-form-type="other"
+				/>
 			</label>
 			<label>
 				ログインパスワード
-				<input type="password" bind:value={setupPassword} placeholder="8文字以上" />
+				<input
+					class="masked-secret"
+					type="text"
+					name="initial-admin-private-phrase"
+					bind:value={setupPassword}
+					placeholder="8文字以上"
+					autocomplete="off"
+					autocapitalize="none"
+					autocorrect="off"
+					spellcheck="false"
+					data-1p-ignore
+					data-lpignore="true"
+					data-form-type="other"
+				/>
 			</label>
 			<button
 				class="btn-secondary"
@@ -362,6 +387,9 @@
 		border: 1px solid #ccc;
 		border-radius: 6px;
 		font-size: 14px;
+	}
+	.masked-secret {
+		-webkit-text-security: disc;
 	}
 	.hint { font-size: 13px; color: #888; }
 	.error { color: #e00; font-size: 14px; }
