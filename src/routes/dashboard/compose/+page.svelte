@@ -289,7 +289,7 @@
 				{/each}
 				{#each contactGroups as group}
 					<div class="recipient-group">
-						<button type="button" class="group-toggle" onclick={() => toggleOrganization('to', group.name)}>
+						<button type="button" class="group-toggle" aria-expanded={isOrganizationOpen('to', group.name)} onclick={() => toggleOrganization('to', group.name)}>
 							<span>{group.name}</span>
 							<small>{group.contacts.length}名</small>
 							<strong>{isOrganizationOpen('to', group.name) ? '閉じる' : '開く'}</strong>
@@ -315,7 +315,7 @@
 				{/each}
 				{#each contactGroups as group}
 					<div class="recipient-group">
-						<button type="button" class="group-toggle" onclick={() => toggleOrganization('cc', group.name)}>
+						<button type="button" class="group-toggle" aria-expanded={isOrganizationOpen('cc', group.name)} onclick={() => toggleOrganization('cc', group.name)}>
 							<span>{group.name}</span>
 							<small>{group.contacts.length}名</small>
 							<strong>{isOrganizationOpen('cc', group.name) ? '閉じる' : '開く'}</strong>
@@ -452,6 +452,9 @@
 		display: grid;
 		gap: 8px;
 		padding-left: 10px;
+	}
+	.group-members[hidden] {
+		display: none !important;
 	}
 	.check {
 		display: flex;
