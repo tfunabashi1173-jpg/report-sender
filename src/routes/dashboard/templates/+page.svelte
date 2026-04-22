@@ -5,7 +5,6 @@
 	const tags = [
 		{ label: '今日の日付', token: '{today}', description: '例: 4月22日 21時10分' },
 		{ label: 'フロア', token: '{floor}', description: 'メール作成時に選んだ階を代入' },
-		{ label: '今日の日付', token: '{%today%}', description: '例: 4月22日 21時10分' },
 		{ label: '割合', token: '{%}', description: 'メール作成時に選んだ10〜100%を代入' }
 	];
 
@@ -38,7 +37,7 @@
 						</button>
 					{/each}
 				</div>
-				<small>{'{today}'} / {'{%today%}'} は現在日時、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。</small>
+				<small>{'{today}'} は現在日時、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。</small>
 			</div>
 			<form method="POST" action="?/save">
 				<input name="name" required placeholder="テンプレート名 例: 日次報告" />
@@ -96,7 +95,7 @@
 							</label>
 							<label>
 								本文
-								<textarea name="body" rows="12" required placeholder={`{today} / {%today%} / {floor} / {%} が使えます`}>{template.body}</textarea>
+								<textarea name="body" rows="12" required placeholder={`{today} / {floor} / {%} が使えます`}>{template.body}</textarea>
 							</label>
 							<div class="list-picker">
 								<strong>メイン宛先リスト</strong>

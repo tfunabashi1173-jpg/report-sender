@@ -27,8 +27,6 @@
 		return value
 			.replaceAll('{today}', formatToday())
 			.replaceAll('{{today}}', formatToday())
-			.replaceAll('{%today%}', formatToday())
-			.replaceAll('{% today %}', formatToday())
 			.replaceAll('{floor}', selectedFloor)
 			.replaceAll('{{floor}}', selectedFloor)
 			.replaceAll('{%}', selectedPercent);
