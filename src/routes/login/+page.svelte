@@ -15,12 +15,23 @@
 	let setupPassword = $state('');
 	let setupLoading = $state(false);
 
+	async function loadBootstrapStatus() {
+		try {
+			const res = await fetch('/api/bootstrap/status');
+			const result = await res.json();
+			hasAdmin = Boolean(result.hasAdmin);
+		} catch {
+			hasAdmin = true;
+		}
+	}
+
 	async function loginWithPasskey() {
 		loading = true;
 		error = '';
 		try {
 			const optRes = await fetch('/api/auth/passkey/authenticate', { method: 'GET' });
 			const opts = await optRes.json();
+			if (!optRes.ok) throw new Error(opts.error ?? 'パスキー認証を開始できません');
 
 			const credential = await startAuthentication({ optionsJSON: opts });
 
@@ -94,10 +105,12 @@
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? '初期管理者の作成に失敗しました');
+			hasAdmin = true;
 			await registerCurrentUserPasskey();
 			goto('/dashboard');
 		} catch (e: any) {
 			error = e.message;
+			await loadBootstrapStatus();
 		} finally {
 			setupLoading = false;
 		}
@@ -128,13 +141,7 @@
 	}
 
 	onMount(async () => {
-		try {
-			const res = await fetch('/api/bootstrap/status');
-			const result = await res.json();
-			hasAdmin = Boolean(result.hasAdmin);
-		} catch {
-			hasAdmin = true;
-		}
+		await loadBootstrapStatus();
 	});
 </script>
 

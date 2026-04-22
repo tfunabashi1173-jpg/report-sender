@@ -3,6 +3,7 @@ import { generateAuthenticationOptions, verifyAuthenticationResponse } from '@si
 import type { RequestHandler } from './$types';
 import {
 	getRpId,
+	getAllPasskeyCredentialIds,
 	updatePasskeyCounter,
 	getPasskeyCredentialById,
 	saveChallenge,
@@ -20,10 +21,19 @@ import {
 const AUTH_KIND = 'passkey-auth';
 
 export const GET: RequestHandler = async ({ locals, cookies, url }) => {
+	const credentialIds = await getAllPasskeyCredentialIds(locals.db);
+	if (credentialIds.length === 0) {
+		return json({ error: 'パスキーが未登録です。名前とパスワードでログインしてください。' }, { status: 400 });
+	}
+
 	const options = await generateAuthenticationOptions({
 		rpID: getRpId(url),
 		userVerification: 'required',
-		allowCredentials: []
+		allowCredentials: credentialIds.map((id) => ({
+			id,
+			type: 'public-key',
+			transports: ['internal']
+		}))
 	});
 
 	const challengeScope = crypto.randomUUID();

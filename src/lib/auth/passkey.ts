@@ -24,6 +24,16 @@ export async function getPasskeyCredentials(db: D1Database, userId: string) {
 	return results as PasskeyCredential[];
 }
 
+export async function getAllPasskeyCredentialIds(db: D1Database) {
+	const { results } = await db
+		.prepare(
+			`SELECT credential_id
+			 FROM passkey_credentials`
+		)
+		.all<{ credential_id: string }>();
+	return (results ?? []).map((row) => row.credential_id);
+}
+
 export async function getPasskeyCredentialById(db: D1Database, credentialId: string) {
 	return (await db
 		.prepare(
