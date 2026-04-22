@@ -66,6 +66,7 @@ export async function ensureRuntimeSchema(db: D1Database) {
 				`CREATE TABLE IF NOT EXISTS recipient_list_members (
 					list_id TEXT NOT NULL,
 					contact_id TEXT NOT NULL,
+					kind TEXT NOT NULL DEFAULT 'to' CHECK(kind IN ('to', 'cc')),
 					created_at TEXT NOT NULL,
 					PRIMARY KEY (list_id, contact_id),
 					FOREIGN KEY (list_id) REFERENCES recipient_lists(id) ON DELETE CASCADE,
@@ -73,6 +74,13 @@ export async function ensureRuntimeSchema(db: D1Database) {
 				)`
 			)
 			.run();
+		const recipientListMemberColumns = await db
+			.prepare("SELECT name FROM pragma_table_info('recipient_list_members')")
+			.all<{ name: string }>();
+		const recipientListMemberColumnNames = new Set((recipientListMemberColumns.results ?? []).map((r) => r.name));
+		if (!recipientListMemberColumnNames.has('kind')) {
+			await db.prepare("ALTER TABLE recipient_list_members ADD COLUMN kind TEXT NOT NULL DEFAULT 'to'").run();
+		}
 		await db
 			.prepare('CREATE INDEX IF NOT EXISTS idx_recipient_list_members_contact_id ON recipient_list_members(contact_id)')
 			.run();

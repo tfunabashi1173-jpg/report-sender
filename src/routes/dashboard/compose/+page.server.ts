@@ -71,28 +71,30 @@ async function resolveRecipients(
 	db: App.Locals['db'],
 	userId: string,
 	contactIds: string[],
-	listIds: string[]
+	listIds: string[],
+	listMemberKind?: 'to' | 'cc'
 ) {
 	const recipients = new Map<string, Recipient>();
 
 	for (const contactId of contactIds) {
 		const contact = await db
-			.prepare('SELECT id, name, email FROM contacts WHERE id = ?1 AND created_by = ?2')
+			.prepare('SELECT id, name, email, organization FROM contacts WHERE id = ?1 AND created_by = ?2')
 			.bind(contactId, userId)
 			.first<Recipient>();
 		if (contact) recipients.set(contact.id, contact);
 	}
 
 	for (const listId of listIds) {
+		const kindFilter = listMemberKind ? 'AND recipient_list_members.kind = ?3' : '';
 		const { results } = await db
 			.prepare(
-				`SELECT contacts.id, contacts.name, contacts.email
+				`SELECT contacts.id, contacts.name, contacts.email, contacts.organization
 				 FROM recipient_list_members
 				 INNER JOIN recipient_lists ON recipient_lists.id = recipient_list_members.list_id
 				 INNER JOIN contacts ON contacts.id = recipient_list_members.contact_id
-				 WHERE recipient_lists.id = ?1 AND recipient_lists.created_by = ?2`
+				 WHERE recipient_lists.id = ?1 AND recipient_lists.created_by = ?2 ${kindFilter}`
 			)
-			.bind(listId, userId)
+			.bind(...(listMemberKind ? [listId, userId, listMemberKind] : [listId, userId]))
 			.all<Recipient>();
 		for (const contact of results ?? []) {
 			recipients.set(contact.id, contact);
@@ -100,6 +102,12 @@ async function resolveRecipients(
 	}
 
 	return [...recipients.values()];
+}
+
+function uniqueRecipients(recipients: Recipient[]) {
+	const merged = new Map<string, Recipient>();
+	for (const recipient of recipients) merged.set(recipient.email.toLowerCase(), recipient);
+	return [...merged.values()];
 }
 
 function mergeRecipients(to: Recipient[], cc: Recipient[]) {
@@ -149,8 +157,11 @@ async function saveReport(
 	subject = subject.replaceAll('{site}', siteName).replaceAll('{{site}}', siteName);
 	body = body.replaceAll('{site}', siteName).replaceAll('{{site}}', siteName);
 
-	const toRecipients = await resolveRecipients(locals.db, user.id, toContactIds, toListIds);
-	const ccRecipients = await resolveRecipients(locals.db, user.id, ccContactIds, ccListIds);
+	const toRecipients = await resolveRecipients(locals.db, user.id, toContactIds, toListIds, 'to');
+	const ccRecipients = uniqueRecipients([
+		...(await resolveRecipients(locals.db, user.id, [], toListIds, 'cc')),
+		...(await resolveRecipients(locals.db, user.id, ccContactIds, ccListIds))
+	]);
 	const recipients = mergeRecipients(toRecipients, ccRecipients);
 	if (status === 'sent' && toRecipients.length === 0) {
 		return fail(400, { error: 'メイン宛先を1件以上選択してください' });
