@@ -2,6 +2,7 @@
 	let { data, form } = $props();
 	let selectedTemplateId = $state('');
 	let selectedFloor = $state('');
+	let selectedPercent = $state('');
 	let selectedToListIds = $state<string[]>([]);
 	let selectedCcListIds = $state<string[]>([]);
 	let subject = $state('');
@@ -11,6 +12,7 @@
 	let compressingAttachments = $state(false);
 
 	const floors = Array.from({ length: 60 }, (_, index) => `${index + 1}階`);
+	const percents = Array.from({ length: 10 }, (_, index) => `${(index + 1) * 10}%`);
 	const imageMaxSide = 1600;
 	const imageQuality = 0.72;
 
@@ -28,8 +30,7 @@
 			.replaceAll('{% today %}', formatToday())
 			.replaceAll('{floor}', selectedFloor)
 			.replaceAll('{{floor}}', selectedFloor)
-			.replaceAll('{%floor%}', selectedFloor)
-			.replaceAll('{% floor %}', selectedFloor);
+			.replaceAll('{%}', selectedPercent);
 	}
 
 	function applyTemplate() {
@@ -152,7 +153,17 @@
 						<option value={floor}>{floor}</option>
 					{/each}
 				</select>
-				<small>定型文内の {'{floor}'} / {'{%floor%}'} に代入します。</small>
+				<small>定型文内の {'{floor}'} に代入します。</small>
+			</label>
+			<label>
+				割合
+				<select bind:value={selectedPercent}>
+					<option value="">選択しない</option>
+					{#each percents as percent}
+						<option value={percent}>{percent}</option>
+					{/each}
+				</select>
+				<small>定型文内の {'{%}'} に代入します。</small>
 			</label>
 			<label>
 				件名
