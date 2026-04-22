@@ -112,6 +112,8 @@ CREATE TABLE IF NOT EXISTS mail_templates (
 	name TEXT NOT NULL,
 	subject TEXT NOT NULL,
 	body TEXT NOT NULL,
+	to_list_ids TEXT NOT NULL DEFAULT '[]',
+	cc_list_ids TEXT NOT NULL DEFAULT '[]',
 	created_by TEXT NOT NULL,
 	created_at TEXT NOT NULL,
 	updated_at TEXT NOT NULL,

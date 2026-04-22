@@ -21,19 +21,41 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.bind(user.id)
 			.all<{ id: string; name: string }>(),
 		locals.db
-			.prepare('SELECT id, name, subject, body FROM mail_templates WHERE created_by = ?1 ORDER BY name COLLATE NOCASE')
+			.prepare(
+				`SELECT id, name, subject, body, to_list_ids AS toListIdsJson, cc_list_ids AS ccListIdsJson
+				 FROM mail_templates
+				 WHERE created_by = ?1
+				 ORDER BY name COLLATE NOCASE`
+			)
 			.bind(user.id)
-			.all<{ id: string; name: string; subject: string; body: string }>(),
+			.all<{ id: string; name: string; subject: string; body: string; toListIdsJson: string; ccListIdsJson: string }>(),
 		getSmtpSettings(locals.db)
 	]);
 
 	return {
 		contacts: contacts.results ?? [],
 		lists: lists.results ?? [],
-		templates: templates.results ?? [],
+		templates: (templates.results ?? []).map((template) => ({
+			id: template.id,
+			name: template.name,
+			subject: template.subject,
+			body: template.body,
+			toListIds: parseTemplateListIds(template.toListIdsJson),
+			ccListIds: parseTemplateListIds(template.ccListIdsJson)
+		})),
 		mailConfigured: Boolean(mailSettings)
 	};
 };
+
+function parseTemplateListIds(value: string | null | undefined) {
+	if (!value) return [];
+	try {
+		const parsed = JSON.parse(value);
+		return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+	} catch {
+		return [];
+	}
+}
 
 async function resolveRecipients(
 	db: App.Locals['db'],

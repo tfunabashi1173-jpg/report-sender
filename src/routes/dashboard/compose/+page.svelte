@@ -2,6 +2,8 @@
 	let { data, form } = $props();
 	let selectedTemplateId = $state('');
 	let selectedFloor = $state('');
+	let selectedToListIds = $state<string[]>([]);
+	let selectedCcListIds = $state<string[]>([]);
 	let subject = $state('');
 	let body = $state('');
 	let attachmentInput: HTMLInputElement;
@@ -35,6 +37,8 @@
 		if (!template) return;
 		subject = applyTags(template.subject);
 		body = applyTags(template.body);
+		selectedToListIds = [...template.toListIds];
+		selectedCcListIds = [...template.ccListIds];
 	}
 
 	function formatFileSize(bytes: number) {
@@ -165,7 +169,7 @@
 			<div class="checks">
 				{#each data.lists as list}
 					<label class="check">
-						<input type="checkbox" name="toListIds" value={list.id} />
+						<input bind:group={selectedToListIds} type="checkbox" name="toListIds" value={list.id} />
 						<span>リスト: {list.name}</span>
 					</label>
 				{/each}
@@ -180,7 +184,7 @@
 			<div class="checks">
 				{#each data.lists as list}
 					<label class="check">
-						<input type="checkbox" name="ccListIds" value={list.id} />
+						<input bind:group={selectedCcListIds} type="checkbox" name="ccListIds" value={list.id} />
 						<span>リスト: {list.name}</span>
 					</label>
 				{/each}

@@ -78,6 +78,8 @@ export async function ensureRuntimeSchema(db: D1Database) {
 					name TEXT NOT NULL,
 					subject TEXT NOT NULL,
 					body TEXT NOT NULL,
+					to_list_ids TEXT NOT NULL DEFAULT '[]',
+					cc_list_ids TEXT NOT NULL DEFAULT '[]',
 					created_by TEXT NOT NULL,
 					created_at TEXT NOT NULL,
 					updated_at TEXT NOT NULL,
@@ -86,6 +88,14 @@ export async function ensureRuntimeSchema(db: D1Database) {
 			)
 			.run();
 		await db.prepare('CREATE INDEX IF NOT EXISTS idx_mail_templates_created_by ON mail_templates(created_by)').run();
+		const templateColumns = await db.prepare("SELECT name FROM pragma_table_info('mail_templates')").all<{ name: string }>();
+		const templateColumnNames = new Set((templateColumns.results ?? []).map((r) => r.name));
+		if (!templateColumnNames.has('to_list_ids')) {
+			await db.prepare("ALTER TABLE mail_templates ADD COLUMN to_list_ids TEXT NOT NULL DEFAULT '[]'").run();
+		}
+		if (!templateColumnNames.has('cc_list_ids')) {
+			await db.prepare("ALTER TABLE mail_templates ADD COLUMN cc_list_ids TEXT NOT NULL DEFAULT '[]'").run();
+		}
 
 		await db
 			.prepare(

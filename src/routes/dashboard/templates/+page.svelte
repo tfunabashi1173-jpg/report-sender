@@ -44,6 +44,32 @@
 				<input name="name" required placeholder="テンプレート名 例: 日次報告" />
 				<input name="subject" required placeholder="件名 例: 本日の活動報告" />
 				<textarea name="body" bind:value={newBody} rows="16" required placeholder={`本文を入力。例: {today} / {%floor%}`}></textarea>
+				<div class="list-picker">
+					<strong>メイン宛先リスト</strong>
+					{#if data.lists.length === 0}
+						<small>宛先リストがありません。</small>
+					{:else}
+						{#each data.lists as list}
+							<label class="check">
+								<input type="checkbox" name="toListIds" value={list.id} />
+								<span>{list.name}</span>
+							</label>
+						{/each}
+					{/if}
+				</div>
+				<div class="list-picker">
+					<strong>CCリスト</strong>
+					{#if data.lists.length === 0}
+						<small>宛先リストがありません。</small>
+					{:else}
+						{#each data.lists as list}
+							<label class="check">
+								<input type="checkbox" name="ccListIds" value={list.id} />
+								<span>{list.name}</span>
+							</label>
+						{/each}
+					{/if}
+				</div>
 				<button>保存する</button>
 			</form>
 		</section>
@@ -72,6 +98,32 @@
 								本文
 								<textarea name="body" rows="12" required placeholder={`{today} / {%today%} や {floor} / {%floor%} が使えます`}>{template.body}</textarea>
 							</label>
+							<div class="list-picker">
+								<strong>メイン宛先リスト</strong>
+								{#if data.lists.length === 0}
+									<small>宛先リストがありません。</small>
+								{:else}
+									{#each data.lists as list}
+										<label class="check">
+											<input type="checkbox" name="toListIds" value={list.id} checked={template.toListIds.includes(list.id)} />
+											<span>{list.name}</span>
+										</label>
+									{/each}
+								{/if}
+							</div>
+							<div class="list-picker">
+								<strong>CCリスト</strong>
+								{#if data.lists.length === 0}
+									<small>宛先リストがありません。</small>
+								{:else}
+									{#each data.lists as list}
+										<label class="check">
+											<input type="checkbox" name="ccListIds" value={list.id} checked={template.ccListIds.includes(list.id)} />
+											<span>{list.name}</span>
+										</label>
+									{/each}
+								{/if}
+							</div>
 							<button>更新する</button>
 						</form>
 						<form method="POST" action="?/delete">
@@ -137,6 +189,26 @@
 	}
 	form { display: grid; gap: 10px; margin-top: 10px; }
 	label { display: grid; gap: 6px; font-weight: 700; font-size: 13px; }
+	.list-picker {
+		display: grid;
+		gap: 8px;
+		padding: 12px;
+		border-radius: 16px;
+		background: rgba(23,33,27,.05);
+	}
+	.list-picker strong {
+		font-size: 13px;
+		font-weight: 800;
+	}
+	.check {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+	}
+	.check input {
+		width: auto;
+	}
 	input, textarea {
 		box-sizing: border-box;
 		width: 100%;
