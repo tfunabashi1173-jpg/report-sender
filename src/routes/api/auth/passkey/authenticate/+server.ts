@@ -18,6 +18,7 @@ import {
 	setAuthChallengeCookie,
 	setSessionCookie
 } from '$lib/server/auth';
+import { base64ToBytes } from '$lib/server/base64';
 
 const AUTH_KIND = 'passkey-auth';
 
@@ -68,7 +69,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 			requireUserVerification: true,
 			credential: {
 				id: cred.credential_id,
-				publicKey: Buffer.from(cred.public_key, 'base64'),
+				publicKey: base64ToBytes(cred.public_key),
 				counter: cred.counter
 			}
 		});

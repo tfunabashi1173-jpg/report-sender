@@ -1,14 +1,8 @@
+import { base64ToBytes, bytesToBase64 } from '$lib/server/base64';
+
 const PBKDF2_ITERATIONS = 100000;
 const SALT_BYTES = 16;
 const HASH_BITS = 256;
-
-function toBase64(bytes: Uint8Array) {
-	return Buffer.from(bytes).toString('base64');
-}
-
-function fromBase64(value: string) {
-	return new Uint8Array(Buffer.from(value, 'base64'));
-}
 
 async function derive(password: string, salt: Uint8Array, iterations: number) {
 	const keyMaterial = await crypto.subtle.importKey(
@@ -43,7 +37,7 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array) {
 export async function hashPassword(password: string) {
 	const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
 	const hash = await derive(password, salt, PBKDF2_ITERATIONS);
-	return `pbkdf2$${PBKDF2_ITERATIONS}$${toBase64(salt)}$${toBase64(hash)}`;
+	return `pbkdf2$${PBKDF2_ITERATIONS}$${bytesToBase64(salt)}$${bytesToBase64(hash)}`;
 }
 
 export async function verifyPassword(password: string, storedHash: string) {
@@ -53,8 +47,8 @@ export async function verifyPassword(password: string, storedHash: string) {
 	const iterations = Number(iterationText);
 	if (!Number.isFinite(iterations) || iterations <= 0) return false;
 
-	const salt = fromBase64(saltBase64);
-	const expectedHash = fromBase64(hashBase64);
+	const salt = base64ToBytes(saltBase64);
+	const expectedHash = base64ToBytes(hashBase64);
 	try {
 		const actualHash = await derive(password, salt, iterations);
 		return timingSafeEqual(actualHash, expectedHash);

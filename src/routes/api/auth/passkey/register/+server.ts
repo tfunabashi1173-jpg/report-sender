@@ -10,6 +10,7 @@ import {
 	getChallenge,
 	deleteChallenge
 } from '$lib/auth/passkey';
+import { bytesToBase64 } from '$lib/server/base64';
 
 const REGISTER_KIND = 'passkey-register';
 
@@ -68,7 +69,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 			locals.db,
 			user.id,
 			credential.id,
-			Buffer.from(credential.publicKey).toString('base64'),
+			bytesToBase64(new Uint8Array(credential.publicKey)),
 			credential.counter
 		);
 
