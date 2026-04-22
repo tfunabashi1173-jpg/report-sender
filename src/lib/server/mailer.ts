@@ -41,6 +41,39 @@ function formatAddress(name: string | null | undefined, email: string) {
 	return name ? `${encodeHeader(name)} <${email}>` : email;
 }
 
+function mailDomain(email: string) {
+	return email.split('@')[1]?.trim().toLowerCase() || 'localhost';
+}
+
+function smtpIdentity(settings: SmtpSettings) {
+	const domain = mailDomain(settings.from_email);
+	if (domain !== 'localhost') return domain;
+	return settings.host || 'localhost';
+}
+
+function formatDate(date: Date) {
+	const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	const pad = (value: number) => String(value).padStart(2, '0');
+	const offsetMinutes = -date.getTimezoneOffset();
+	const sign = offsetMinutes >= 0 ? '+' : '-';
+	const absOffset = Math.abs(offsetMinutes);
+	const zone = `${sign}${pad(Math.floor(absOffset / 60))}${pad(absOffset % 60)}`;
+	return `${weekdays[date.getDay()]}, ${pad(date.getDate())} ${months[date.getMonth()]} ${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${zone}`;
+}
+
+function createMessageId(settings: SmtpSettings) {
+	const id = `${Date.now()}.${crypto.randomUUID().replaceAll('-', '')}`;
+	return `<${id}@${mailDomain(settings.from_email)}>`;
+}
+
+function formatMimeParameter(name: string, value: string) {
+	if (/^[\x20-\x7e]*$/.test(value) && !/[()<>@,;:\\"/\[\]?=]/.test(value)) {
+		return `${name}="${value}"`;
+	}
+	return `${name}*="UTF-8''${encodeURIComponent(value)}"`;
+}
+
 function normalizeNewlines(value: string) {
 	return value.replace(/\r?\n/g, '\r\n');
 }
@@ -58,13 +91,17 @@ function buildMessage(
 	attachments: MailAttachment[]
 ) {
 	const mixedBoundary = `mixed-${crypto.randomUUID()}`;
+	const messageId = createMessageId(settings);
 	const headers = [
+		`Date: ${formatDate(new Date())}`,
+		`Message-ID: ${messageId}`,
 		`From: ${formatAddress(settings.from_name, settings.from_email)}`,
 		`To: ${to.map((recipient) => formatAddress(recipient.name, recipient.email)).join(', ')}`,
 		cc.length > 0 ? `Cc: ${cc.map((recipient) => formatAddress(recipient.name, recipient.email)).join(', ')}` : null,
 		settings.reply_to ? `Reply-To: ${settings.reply_to}` : null,
 		`Subject: ${encodeHeader(subject)}`,
 		'MIME-Version: 1.0',
+		'X-Mailer: Report Sender',
 		`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`
 	].filter(Boolean);
 
@@ -79,16 +116,19 @@ function buildMessage(
 	for (const attachment of attachments) {
 		parts.push(
 			`--${mixedBoundary}`,
-			`Content-Type: ${attachment.contentType}; name="${attachment.fileName}"`,
+			`Content-Type: ${attachment.contentType}; ${formatMimeParameter('name', attachment.fileName)}`,
 			'Content-Transfer-Encoding: base64',
-			`Content-Disposition: attachment; filename="${attachment.fileName}"`,
+			`Content-Disposition: attachment; ${formatMimeParameter('filename', attachment.fileName)}`,
 			'',
 			foldBase64(bytesToBase64(attachment.bytes))
 		);
 	}
 	parts.push(`--${mixedBoundary}--`, '');
 
-	return `${headers.join('\r\n')}\r\n\r\n${parts.join('\r\n')}`;
+	return {
+		messageId,
+		raw: `${headers.join('\r\n')}\r\n\r\n${parts.join('\r\n')}`
+	};
 }
 
 class SmtpClient {
@@ -158,6 +198,7 @@ class SmtpClient {
 
 async function connectSmtp(settings: SmtpSettings) {
 	const { connect } = await import('cloudflare:sockets');
+	const identity = smtpIdentity(settings);
 	const socket = connect(
 		{ hostname: settings.host, port: settings.port },
 		{ secureTransport: settings.secure_mode === 'tls' ? 'on' : 'off', allowHalfOpen: false }
@@ -167,13 +208,13 @@ async function connectSmtp(settings: SmtpSettings) {
 	const greeting = await client.readResponse();
 	if (greeting.code !== 220) throw new Error(`SMTP接続エラー: ${greeting.text}`);
 
-	await client.command('EHLO report-sender.local', [250]);
+	await client.command(`EHLO ${identity}`, [250]);
 	if (settings.secure_mode === 'starttls') {
 		await client.command('STARTTLS', [220]);
 		const secureSocket = socket.startTls();
 		await secureSocket.opened;
 		client = new SmtpClient(secureSocket);
-		await client.command('EHLO report-sender.local', [250]);
+		await client.command(`EHLO ${identity}`, [250]);
 	}
 	return client;
 }
@@ -205,11 +246,11 @@ export async function sendReportMail(
 			await client.command(`RCPT TO:<${recipient.email}>`, [250, 251]);
 		}
 		await client.command('DATA', [354]);
-		await client.writeData(buildMessage(settings, to, cc, subject, body, attachments));
+		const message = buildMessage(settings, to, cc, subject, body, attachments);
+		await client.writeData(message.raw);
 		await client.command('QUIT', [221]);
+		return { count: to.length + cc.length, messageId: message.messageId };
 	} finally {
 		await client.close();
 	}
-
-	return { count: to.length + cc.length };
 }

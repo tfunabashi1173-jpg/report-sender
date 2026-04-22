@@ -149,7 +149,7 @@ async function saveReport(
 					 SET delivery_status = 'sent', provider_message_id = ?1, sent_at = ?2, updated_at = ?2
 					 WHERE id = ?3 AND created_by = ?4`
 				)
-				.bind(String(result.count), new Date().toISOString(), reportId, user.id)
+				.bind(result.messageId, new Date().toISOString(), reportId, user.id)
 				.run();
 		} catch (e: any) {
 			await locals.db

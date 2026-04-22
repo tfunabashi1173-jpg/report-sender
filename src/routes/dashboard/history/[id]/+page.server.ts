@@ -66,7 +66,7 @@ export const actions: Actions = {
 					     provider_message_id = ?1, sent_at = ?2, updated_at = ?2
 					 WHERE id = ?3 AND created_by = ?4`
 				)
-				.bind(String(result.count), now, params.id, user.id)
+				.bind(result.messageId, now, params.id, user.id)
 				.run();
 		} catch (e: any) {
 			await locals.db
