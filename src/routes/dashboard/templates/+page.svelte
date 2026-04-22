@@ -3,13 +3,13 @@
 	let newName = $state('');
 	let newSubject = $state('');
 	let newBody = $state('');
-	let previewSite = $state('');
+	let previewSite = $state(data.siteName ?? '');
 	let previewFloor = $state('');
 	let previewPercent = $state('');
 
 	const tags = [
 		{ label: '今日の日付', token: '{today}', description: '例: 4月22日 21時10分' },
-		{ label: '現場名', token: '{site}', description: 'メール作成時に入力した現場名を代入' },
+		{ label: '現場名', token: '{site}', description: 'このアプリ共通の現場名を代入' },
 		{ label: 'フロア', token: '{floor}', description: 'メール作成時に選んだ階を代入' },
 		{ label: '割合', token: '{%}', description: 'メール作成時に選んだ10〜100%を代入' }
 	];
@@ -62,14 +62,19 @@
 						</button>
 					{/each}
 				</div>
-				<small>{'{site}'} はメール作成画面で入力する現場名、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。タグはテンプレート名・件名・本文で使えます。</small>
+				<small>{'{site}'} はこのアプリ共通の現場名、{'{floor}'} は選択したフロア、{'{%}'} は選択した割合に置換されます。タグはテンプレート名・件名・本文で使えます。</small>
 			</div>
-			<div class="tag-settings">
+			<form class="tag-settings" method="POST" action="?/saveSite">
 				<p>タグ設定</p>
 				<label>
 					現場名 {'{site}'}
-					<input bind:value={previewSite} placeholder="例: 舟橋ビル改修工事" />
+					<input bind:value={previewSite} name="siteName" placeholder="例: 舟橋ビル改修工事" />
 				</label>
+				<button class="secondary">現場名を保存</button>
+				<small>この現場名はアプリ全体で使います。メール作成画面に現場名入力欄は出しません。</small>
+			</form>
+			<div class="tag-settings">
+				<p>表示確認</p>
 				<label>
 					フロア {'{floor}'}
 					<select bind:value={previewFloor}>
@@ -88,7 +93,7 @@
 						{/each}
 					</select>
 				</label>
-				<small>ここは定型文作成時の確認用です。保存する定型文にはタグを残し、実際の値はメール作成時にも入力できます。</small>
+				<small>フロアと割合は定型文作成時の確認用です。実際の値はメール作成時に選択します。</small>
 			</div>
 			<form method="POST" action="?/save">
 				<input bind:value={newName} name="name" required placeholder={`テンプレート名 例: {site} 日次報告`} />

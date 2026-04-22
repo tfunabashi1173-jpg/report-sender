@@ -180,6 +180,18 @@ export async function ensureRuntimeSchema(db: D1Database) {
 		if (!smtpColumnNames.has('signature')) {
 			await db.prepare('ALTER TABLE smtp_settings ADD COLUMN signature TEXT').run();
 		}
+
+		await db
+			.prepare(
+				`CREATE TABLE IF NOT EXISTS app_settings (
+					key TEXT PRIMARY KEY,
+					value TEXT NOT NULL,
+					updated_at TEXT NOT NULL,
+					updated_by TEXT,
+					FOREIGN KEY (updated_by) REFERENCES users(id)
+				)`
+			)
+			.run();
 	})();
 
 	try {

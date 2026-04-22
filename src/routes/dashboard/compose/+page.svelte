@@ -2,7 +2,6 @@
 	let { data, form } = $props();
 	let selectedTemplateId = $state('');
 	let appliedTemplateId = $state('');
-	let siteName = $state('');
 	let selectedFloor = $state('');
 	let selectedPercent = $state('');
 	let selectedToListIds = $state<string[]>([]);
@@ -19,7 +18,6 @@
 	const percents = Array.from({ length: 10 }, (_, index) => `${(index + 1) * 10}%`);
 	const tags = [
 		{ label: '今日の日付', token: '{today}' },
-		{ label: '現場名', token: '{site}' },
 		{ label: 'フロア', token: '{floor}' },
 		{ label: '割合', token: '{%}' }
 	];
@@ -60,8 +58,8 @@
 		return value
 			.replaceAll('{today}', formatToday())
 			.replaceAll('{{today}}', formatToday())
-			.replaceAll('{site}', siteName)
-			.replaceAll('{{site}}', siteName)
+			.replaceAll('{site}', data.siteName ?? '')
+			.replaceAll('{{site}}', data.siteName ?? '')
 			.replaceAll('{floor}', selectedFloor)
 			.replaceAll('{{floor}}', selectedFloor)
 			.replaceAll('{%}', selectedPercent);
@@ -192,11 +190,6 @@
 					{/each}
 				</div>
 			</div>
-			<label>
-				現場名（{'{site}'}）
-				<input bind:value={siteName} placeholder="例: 舟橋ビル改修工事" />
-				<small>ここに入力した値を、件名・本文・定型文名の {'{site}'} に代入します。</small>
-			</label>
 			<label>
 				定型文
 				<div class="template-row">

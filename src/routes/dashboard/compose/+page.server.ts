@@ -12,7 +12,7 @@ type Recipient = {
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = await requireDashboardUser(locals);
-	const [contacts, lists, templates, mailSettings] = await Promise.all([
+	const [contacts, lists, templates, mailSettings, siteSetting] = await Promise.all([
 		locals.db
 			.prepare(
 				`SELECT id, name, email, organization
@@ -37,10 +37,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			)
 			.bind(user.id)
 			.all<{ id: string; name: string; subject: string; body: string; toListIdsJson: string; ccListIdsJson: string }>(),
-		getSmtpSettings(locals.db)
+		getSmtpSettings(locals.db),
+		locals.db.prepare("SELECT value FROM app_settings WHERE key = 'site_name'").first<{ value: string }>()
 	]);
 
 	return {
+		siteName: siteSetting?.value ?? '',
 		contacts: contacts.results ?? [],
 		lists: lists.results ?? [],
 		templates: (templates.results ?? []).map((template) => ({
@@ -133,14 +135,19 @@ async function saveReport(
 ) {
 	const { user } = await requireDashboardUser(locals);
 	const form = await request.formData();
-	const subject = String(form.get('subject') ?? '').trim();
-	const body = String(form.get('body') ?? '').trim();
+	let subject = String(form.get('subject') ?? '').trim();
+	let body = String(form.get('body') ?? '').trim();
 	const toContactIds = form.getAll('toContactIds').map(String).filter(Boolean);
 	const toListIds = form.getAll('toListIds').map(String).filter(Boolean);
 	const ccContactIds = form.getAll('ccContactIds').map(String).filter(Boolean);
 	const ccListIds = form.getAll('ccListIds').map(String).filter(Boolean);
 
 	if (!subject || !body) return fail(400, { error: '件名と本文は必須です' });
+
+	const siteSetting = await locals.db.prepare("SELECT value FROM app_settings WHERE key = 'site_name'").first<{ value: string }>();
+	const siteName = siteSetting?.value ?? '';
+	subject = subject.replaceAll('{site}', siteName).replaceAll('{{site}}', siteName);
+	body = body.replaceAll('{site}', siteName).replaceAll('{{site}}', siteName);
 
 	const toRecipients = await resolveRecipients(locals.db, user.id, toContactIds, toListIds);
 	const ccRecipients = await resolveRecipients(locals.db, user.id, ccContactIds, ccListIds);

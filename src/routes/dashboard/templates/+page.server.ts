@@ -36,7 +36,7 @@ async function filterOwnedListIds(db: App.Locals['db'], userId: string, ids: str
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { user } = await requireDashboardUser(locals);
-	const [templates, lists] = await Promise.all([
+	const [templates, lists, siteSetting] = await Promise.all([
 		locals.db
 			.prepare(
 				`SELECT id, name, subject, body, to_list_ids AS toListIdsJson, cc_list_ids AS ccListIdsJson, updated_at AS updatedAt
@@ -49,10 +49,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 		locals.db
 			.prepare('SELECT id, name FROM recipient_lists WHERE created_by = ?1 ORDER BY name COLLATE NOCASE')
 			.bind(user.id)
-			.all<{ id: string; name: string }>()
+			.all<{ id: string; name: string }>(),
+		locals.db.prepare("SELECT value FROM app_settings WHERE key = 'site_name'").first<{ value: string }>()
 	]);
 
 	return {
+		siteName: siteSetting?.value ?? '',
 		lists: lists.results ?? [],
 		templates: (templates.results ?? []).map((template) => ({
 			id: template.id,
@@ -67,6 +69,21 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	saveSite: async ({ request, locals }) => {
+		const { user } = await requireDashboardUser(locals);
+		const form = await request.formData();
+		const siteName = String(form.get('siteName') ?? '').trim();
+		const now = new Date().toISOString();
+		await locals.db
+			.prepare(
+				`INSERT INTO app_settings (key, value, updated_at, updated_by)
+				 VALUES ('site_name', ?1, ?2, ?3)
+				 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, updated_by = excluded.updated_by`
+			)
+			.bind(siteName, now, user.id)
+			.run();
+		redirect(303, '/dashboard/templates');
+	},
 	save: async ({ request, locals }) => {
 		const { user } = await requireDashboardUser(locals);
 		const form = await request.formData();
