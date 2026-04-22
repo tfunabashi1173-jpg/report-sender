@@ -397,10 +397,14 @@
 		color: #1f2937;
 		font-size: 12px;
 	}
+	.group-toggle:hover {
+		background: #eef2f7;
+		color: #24262b;
+	}
 	.group-toggle:hover,
 	.group-toggle:hover strong,
 	.group-toggle:hover small {
-		color: #fff;
+		color: #24262b;
 	}
 	.group-members {
 		display: grid;
@@ -436,7 +440,9 @@
 	button { border: none; border-radius: 14px; font-weight: 900; padding: 14px; }
 	button:disabled { opacity: .55; cursor: not-allowed; }
 	.primary, .sub-button { background: #f08a24; color: #1c1207; }
+	.primary:hover, .sub-button:hover { background: #dd7b1b; color: #1c1207; }
 	.secondary { background: #17211b; color: white; }
+	.secondary:hover { background: #24352c; color: white; }
 	.error { border-radius: 14px; padding: 12px; background: #ffe8e4; color: #a53024; }
 	@media (max-width: 620px) {
 		.template-row, .actions { grid-template-columns: 1fr; }
@@ -481,6 +487,9 @@
 	input:focus, textarea:focus, select:focus { outline: 2px solid rgba(31,41,55,.12); border-color: #cfd5df; }
 	button, .btn-primary, .btn-copy, .btn-share { border: 0; border-radius: 16px; background: #1f2937; color: #fff; font-weight: 700; }
 	button:hover, .btn-primary:hover, .btn-copy:hover, .btn-share:hover { background: #111827; }
+	.group-toggle:hover { background: #eef2f7 !important; color: #24262b !important; }
+	.primary:hover, .sub-button:hover { background: #dd7b1b !important; color: #1c1207 !important; }
+	.secondary:hover { background: #24352c !important; color: #fff !important; }
 	.danger, .plain { background: #fff1f0 !important; color: #b42318 !important; }
 	.error { border: 0; border-radius: 16px; background: #fff1f0; color: #b42318; }
 	.success { border: 0; border-radius: 16px; background: #ecfdf3; color: #067647; }
@@ -488,6 +497,6 @@
 	.group-toggle:hover,
 	.group-toggle:hover strong,
 	.group-toggle:hover small {
-		color: #fff;
+		color: #24262b !important;
 	}
 </style>
