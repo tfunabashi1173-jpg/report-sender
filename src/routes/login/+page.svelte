@@ -11,6 +11,8 @@
 	let password = $state('');
 	let passwordLoading = $state(false);
 	let autoPasswordLoginAttempted = $state(false);
+	let displayNameInputEl = $state<HTMLInputElement | null>(null);
+	let passwordInputEl = $state<HTMLInputElement | null>(null);
 
 	let setupName = $state('');
 	let setupPassword = $state('');
@@ -88,7 +90,17 @@
 		}
 	}
 
+	function syncAutofilledValues() {
+		if (displayNameInputEl && displayNameInputEl.value !== displayName) {
+			displayName = displayNameInputEl.value;
+		}
+		if (passwordInputEl && passwordInputEl.value !== password) {
+			password = passwordInputEl.value;
+		}
+	}
+
 	$effect(() => {
+		syncAutofilledValues();
 		if (!hasAdmin || passwordLoading) return;
 		const ready = displayName.trim().length > 0 && password.length > 0;
 		if (!ready) {
@@ -195,8 +207,12 @@
 		}
 	}
 
-	onMount(async () => {
-		await loadBootstrapStatus();
+	onMount(() => {
+		void loadBootstrapStatus();
+		const timer = setInterval(() => {
+			syncAutofilledValues();
+		}, 400);
+		return () => clearInterval(timer);
 	});
 </script>
 
@@ -221,11 +237,23 @@
 			<form class="password-form" onsubmit={(e) => { e.preventDefault(); void loginWithPassword(); }}>
 				<label>
 					名前
-					<input type="text" bind:value={displayName} placeholder="山田 太郎" autocomplete="username webauthn" />
+					<input
+						type="text"
+						bind:this={displayNameInputEl}
+						bind:value={displayName}
+						placeholder="山田 太郎"
+						autocomplete="username webauthn"
+					/>
 				</label>
 				<label>
 					ログインパスワード
-					<input type="password" bind:value={password} placeholder="8文字以上" autocomplete="current-password" />
+					<input
+						type="password"
+						bind:this={passwordInputEl}
+						bind:value={password}
+						placeholder="8文字以上"
+						autocomplete="current-password"
+					/>
 				</label>
 				<button type="submit" class="btn-secondary" disabled={passwordLoading || !displayName.trim() || !password}>
 					{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
