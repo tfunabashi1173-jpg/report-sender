@@ -14,6 +14,11 @@
 
 	const floors = Array.from({ length: 60 }, (_, index) => `${index + 1}階`);
 	const percents = Array.from({ length: 10 }, (_, index) => `${(index + 1) * 10}%`);
+	const tags = [
+		{ label: '今日の日付', token: '{today}' },
+		{ label: 'フロア', token: '{floor}' },
+		{ label: '割合', token: '{%}' }
+	];
 	const imageMaxSide = 1600;
 	const imageQuality = 0.72;
 
@@ -141,6 +146,17 @@
 	<form class="composer" method="POST" enctype="multipart/form-data">
 		<section class="card">
 			<h2>本文</h2>
+			<div class="tag-panel">
+				<p>使えるタグ</p>
+				<div class="tags">
+					{#each tags as tag}
+						<div class="tag-chip">
+							<strong>{tag.token}</strong>
+							<span>{tag.label}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
 			<label>
 				定型文
 				<div class="template-row">
@@ -251,6 +267,39 @@
 	}
 	h2 { margin: 0 0 14px; font-size: 18px; }
 	.cc-title { margin-top: 20px; }
+	.tag-panel {
+		display: grid;
+		gap: 10px;
+		margin-bottom: 14px;
+		padding: 14px;
+		border-radius: 18px;
+		background: rgba(23,33,27,.05);
+	}
+	.tag-panel p {
+		margin: 0;
+		font-size: 13px;
+		font-weight: 800;
+	}
+	.tags {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 8px;
+	}
+	.tag-chip {
+		display: grid;
+		gap: 3px;
+		border-radius: 14px;
+		background: white;
+		padding: 10px;
+	}
+	.tag-chip strong {
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 13px;
+	}
+	.tag-chip span {
+		color: #69746d;
+		font-size: 12px;
+	}
 	label { display: grid; gap: 6px; margin-top: 12px; font-size: 13px; font-weight: 800; }
 	input, textarea, select {
 		box-sizing: border-box;
