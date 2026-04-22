@@ -14,6 +14,7 @@ import {
 	clearAuthChallengeCookie,
 	createSession,
 	getAuthChallengeCookie,
+	isSecureRequest,
 	setAuthChallengeCookie,
 	setSessionCookie
 } from '$lib/server/auth';
@@ -38,7 +39,7 @@ export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 
 	const challengeScope = crypto.randomUUID();
 	await saveChallenge(locals.db, AUTH_KIND, challengeScope, options.challenge);
-	setAuthChallengeCookie(cookies, challengeScope);
+	setAuthChallengeCookie(cookies, challengeScope, isSecureRequest(url));
 	return json(options);
 };
 
@@ -81,7 +82,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 		clearAuthChallengeCookie(cookies);
 
 		const { sessionId, expiresAt } = await createSession(locals.db, cred.user_id);
-		setSessionCookie(cookies, sessionId, expiresAt);
+		setSessionCookie(cookies, sessionId, expiresAt, isSecureRequest(url));
 		return json({ success: true });
 	} catch (e: any) {
 		return json({ error: e.message }, { status: 400 });

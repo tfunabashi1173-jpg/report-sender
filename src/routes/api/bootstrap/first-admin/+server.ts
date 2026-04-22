@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createSession, setSessionCookie } from '$lib/server/auth';
+import { createSession, isSecureRequest, setSessionCookie } from '$lib/server/auth';
 import { hashPassword } from '$lib/server/password';
 
-export const POST: RequestHandler = async ({ request, locals, cookies }) => {
+export const POST: RequestHandler = async ({ request, locals, cookies, url }) => {
 	const { displayName, password } = await request.json();
 
 	if (typeof displayName !== 'string' || displayName.trim().length === 0) {
@@ -60,7 +60,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	]);
 
 	const { sessionId, expiresAt } = await createSession(locals.db, userId);
-	setSessionCookie(cookies, sessionId, expiresAt);
+	setSessionCookie(cookies, sessionId, expiresAt, isSecureRequest(url));
 
 	return json({ success: true });
 };

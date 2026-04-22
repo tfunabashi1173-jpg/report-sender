@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createSession, setSessionCookie } from '$lib/server/auth';
+import { createSession, isSecureRequest, setSessionCookie } from '$lib/server/auth';
 import { verifyPassword } from '$lib/server/password';
 
-export const POST: RequestHandler = async ({ request, locals, cookies }) => {
+export const POST: RequestHandler = async ({ request, locals, cookies, url }) => {
 	const { displayName, password } = await request.json();
 
 	if (typeof displayName !== 'string' || displayName.trim().length === 0) {
@@ -17,8 +17,9 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 		.prepare(
 			`SELECT users.id AS id, users.password_hash AS passwordHash
 			 FROM users
-			 JOIN profiles ON profiles.id = users.id
-			 WHERE profiles.display_name = ?1`
+			 LEFT JOIN profiles ON profiles.id = users.id
+			 WHERE profiles.display_name = ?1
+			    OR users.login_id = ?1`
 		)
 		.bind(displayName.trim())
 		.first()) as { id: string; passwordHash: string | null } | null;
@@ -33,6 +34,6 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	}
 
 	const { sessionId, expiresAt } = await createSession(locals.db, user.id);
-	setSessionCookie(cookies, sessionId, expiresAt);
+	setSessionCookie(cookies, sessionId, expiresAt, isSecureRequest(url));
 	return json({ success: true });
 };

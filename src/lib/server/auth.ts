@@ -17,6 +17,10 @@ export type AppUser = {
 	phone: string | null;
 };
 
+export function isSecureRequest(url: URL) {
+	return url.protocol === 'https:';
+}
+
 function addDays(date: Date, days: number) {
 	const result = new Date(date);
 	result.setDate(result.getDate() + days);
@@ -48,10 +52,15 @@ export async function createSession(db: D1Database, userId: string) {
 	};
 }
 
-export function setSessionCookie(cookies: import('@sveltejs/kit').Cookies, sessionId: string, expiresAt: string) {
+export function setSessionCookie(
+	cookies: import('@sveltejs/kit').Cookies,
+	sessionId: string,
+	expiresAt: string,
+	secure: boolean
+) {
 	cookies.set(SESSION_COOKIE_NAME, sessionId, {
 		httpOnly: true,
-		secure: true,
+		secure,
 		sameSite: 'lax',
 		path: '/',
 		expires: new Date(expiresAt)
@@ -61,7 +70,6 @@ export function setSessionCookie(cookies: import('@sveltejs/kit').Cookies, sessi
 export function clearSessionCookie(cookies: import('@sveltejs/kit').Cookies) {
 	cookies.delete(SESSION_COOKIE_NAME, {
 		httpOnly: true,
-		secure: true,
 		sameSite: 'lax',
 		path: '/'
 	});
@@ -118,10 +126,14 @@ export async function safeGetSession(
 	return { session, user };
 }
 
-export function setAuthChallengeCookie(cookies: import('@sveltejs/kit').Cookies, challengeId: string) {
+export function setAuthChallengeCookie(
+	cookies: import('@sveltejs/kit').Cookies,
+	challengeId: string,
+	secure: boolean
+) {
 	cookies.set(AUTH_CHALLENGE_COOKIE_NAME, challengeId, {
 		httpOnly: true,
-		secure: true,
+		secure,
 		sameSite: 'lax',
 		path: '/',
 		expires: addMinutes(new Date(), CHALLENGE_TTL_MINUTES)
@@ -135,7 +147,6 @@ export function getAuthChallengeCookie(cookies: import('@sveltejs/kit').Cookies)
 export function clearAuthChallengeCookie(cookies: import('@sveltejs/kit').Cookies) {
 	cookies.delete(AUTH_CHALLENGE_COOKIE_NAME, {
 		httpOnly: true,
-		secure: true,
 		sameSite: 'lax',
 		path: '/'
 	});

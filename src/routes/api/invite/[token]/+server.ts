@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createSession, setSessionCookie } from '$lib/server/auth';
+import { createSession, isSecureRequest, setSessionCookie } from '$lib/server/auth';
 import { hashPassword } from '$lib/server/password';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -20,7 +20,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	return json({ valid: true, displayName: data.displayName });
 };
 
-export const POST: RequestHandler = async ({ params, request, locals, cookies }) => {
+export const POST: RequestHandler = async ({ params, request, locals, cookies, url }) => {
 	const { displayName, password } = await request.json();
 	if (!displayName) return json({ error: '名前は必須です' }, { status: 400 });
 	if (typeof password !== 'string' || password.length < 8) {
@@ -81,7 +81,7 @@ export const POST: RequestHandler = async ({ params, request, locals, cookies })
 	]);
 
 	const { sessionId, expiresAt } = await createSession(locals.db, userId);
-	setSessionCookie(cookies, sessionId, expiresAt);
+	setSessionCookie(cookies, sessionId, expiresAt, isSecureRequest(url));
 
 	return json({ success: true });
 };
