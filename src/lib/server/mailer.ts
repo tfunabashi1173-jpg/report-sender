@@ -28,6 +28,7 @@ export type MailAttachment = {
 
 type SendMailOptions = {
 	actorUserId?: string;
+	includeSignature?: boolean;
 };
 
 export async function getSmtpSettings(db: D1Database) {
@@ -319,6 +320,10 @@ export async function sendTestMail(db: D1Database, toEmail: string, actorUserId?
 	);
 }
 
+export async function sendSystemMail(db: D1Database, recipient: MailRecipient, subject: string, body: string) {
+	return sendReportMail(db, [{ ...recipient, kind: 'to' }], subject, body, [], { includeSignature: false });
+}
+
 export async function sendReportMail(
 	db: D1Database,
 	recipients: MailRecipient[],
@@ -337,7 +342,7 @@ export async function sendReportMail(
 	const client = await connectSmtp(settings);
 	try {
 		await authenticateSmtp(client, settings);
-		const resolvedSignature = await resolveSignature(db, options.actorUserId, settings.signature);
+		const resolvedSignature = options.includeSignature === false ? '' : await resolveSignature(db, options.actorUserId, settings.signature);
 		const messageSettings = { ...settings, signature: resolvedSignature };
 
 		await client.command(`MAIL FROM:<${settings.from_email}>`, [250]);

@@ -12,6 +12,11 @@
 	let password = $state('');
 	let passwordLoading = $state(false);
 	let showPasswordLogin = $state(false);
+	let showPasswordReset = $state(false);
+	let resetName = $state('');
+	let resetEmail = $state('');
+	let resetLoading = $state(false);
+	let info = $state('');
 	let displayNameInputEl = $state<HTMLInputElement | null>(null);
 	let passwordInputEl = $state<HTMLInputElement | null>(null);
 
@@ -104,7 +109,16 @@
 
 	function openPasswordLogin() {
 		error = '';
+		info = '';
+		showPasswordReset = false;
 		showPasswordLogin = true;
+	}
+
+	function openPasswordReset() {
+		error = '';
+		info = '';
+		showPasswordLogin = false;
+		showPasswordReset = true;
 	}
 
 	function syncAutofilledValues() {
@@ -149,7 +163,36 @@
 		}
 	}
 
+	async function requestPasswordReset() {
+		if (!resetName.trim() || !resetEmail.trim()) {
+			error = '名前とメールアドレスを入力してください';
+			return;
+		}
+
+		resetLoading = true;
+		error = '';
+		info = '';
+		try {
+			const res = await fetch('/api/auth/password/reset-request', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ displayName: resetName, email: resetEmail })
+			});
+			const result = await res.json();
+			if (!res.ok) throw new Error(result.error ?? 'パスワード再設定メールを送信できませんでした');
+			info = result.message ?? '入力内容が登録情報と一致した場合、パスワード再設定用URLをメール送信します。';
+		} catch (e: any) {
+			error = e.message;
+		} finally {
+			resetLoading = false;
+		}
+	}
+
 	onMount(() => {
+		if (new URL(window.location.href).searchParams.get('reset') === 'done') {
+			info = 'ログインパスワードを再設定しました。新しいパスワードでログインしてください。';
+			showPasswordLogin = true;
+		}
 		void loadBootstrapStatus();
 	});
 </script>
@@ -160,6 +203,9 @@
 	{#if error}
 		<p class="error">{error}</p>
 	{/if}
+	{#if info}
+		<p class="info">{info}</p>
+	{/if}
 
 	{#if hasAdmin}
 		<button class="btn-primary" onclick={loginWithPasskey} disabled={loading}>
@@ -168,6 +214,7 @@
 
 		<div class="fallback-actions">
 			<button type="button" class="link-button" onclick={openPasswordLogin}>名前とパスワードでログイン</button>
+			<button type="button" class="link-button" onclick={openPasswordReset}>パスワードを忘れた場合</button>
 		</div>
 
 		{#if showPasswordLogin}
@@ -200,6 +247,26 @@
 					</label>
 					<button type="submit" class="btn-secondary" disabled={passwordLoading}>
 						{passwordLoading ? 'ログイン中...' : '名前とパスワードでログイン'}
+					</button>
+				</form>
+			</section>
+		{/if}
+
+		{#if showPasswordReset}
+			<section class="setup">
+				<h2>パスワード再設定メール</h2>
+				<p class="hint">登録ユーザー名と、連絡先に登録済みの同じ名前のメールアドレスが完全一致した場合のみ送信します。</p>
+				<form class="password-form" onsubmit={(e) => { e.preventDefault(); void requestPasswordReset(); }}>
+					<label>
+						名前
+						<input type="text" bind:value={resetName} placeholder="山田 太郎" autocomplete="username" />
+					</label>
+					<label>
+						メールアドレス
+						<input type="email" bind:value={resetEmail} placeholder="name@example.co.jp" autocomplete="email" />
+					</label>
+					<button type="submit" class="btn-secondary" disabled={resetLoading || !resetName.trim() || !resetEmail.trim()}>
+						{resetLoading ? '送信中...' : '再設定URLを送信'}
 					</button>
 				</form>
 			</section>
@@ -333,4 +400,5 @@
 	}
 	.hint { font-size: 13px; color: #888; }
 	.error { color: #e00; font-size: 14px; }
+	.info { color: #067647; font-size: 14px; line-height: 1.6; }
 </style>
