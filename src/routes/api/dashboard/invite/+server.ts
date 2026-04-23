@@ -14,7 +14,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 		return json({ error: '管理者のみ招待リンクを作成できます' }, { status: 403 });
 	}
 
-	const { displayName, phone } = await request.json();
+	const { displayName } = await request.json();
 	const token = crypto.randomUUID();
 	const now = new Date();
 	const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -24,7 +24,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 			`INSERT INTO invites (token, display_name, phone, created_by, expires_at, created_at)
 			 VALUES (?1, ?2, ?3, ?4, ?5, ?6)`
 		)
-		.bind(token, displayName || null, phone || null, user.id, expiresAt.toISOString(), now.toISOString())
+		.bind(token, displayName || null, null, user.id, expiresAt.toISOString(), now.toISOString())
 		.run();
 
 	return json({ url: `${url.origin}/invite/${token}` });

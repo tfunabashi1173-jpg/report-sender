@@ -2,7 +2,6 @@
 	import QRCode from 'qrcode';
 
 	let displayName = $state('');
-	let phone = $state('');
 	let generatedUrl = $state('');
 	let qrCodeDataUrl = $state('');
 	let canShare = $state(false);
@@ -19,7 +18,7 @@
 			const res = await fetch('/api/dashboard/invite', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ displayName, phone })
+				body: JSON.stringify({ displayName })
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error);
@@ -70,11 +69,6 @@
 	<label>
 		招待する方のお名前（任意）
 		<input type="text" bind:value={displayName} placeholder="山田 太郎" />
-	</label>
-
-	<label>
-		電話番号（任意）
-		<input type="tel" bind:value={phone} placeholder="090-0000-0000" />
 	</label>
 
 	<button class="btn-primary" onclick={generateInvite} disabled={loading}>
