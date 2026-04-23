@@ -142,6 +142,39 @@ function foldBase64(value: string) {
 	return value.match(/.{1,76}/g)?.join('\r\n') ?? '';
 }
 
+function encodeQuotedPrintable(value: string) {
+	const bytes = new TextEncoder().encode(normalizeTextBody(value));
+	const lines: string[] = [];
+	let line = '';
+
+	const push = (chunk: string) => {
+		if (line.length + chunk.length > 75) {
+			lines.push(`${line}=`);
+			line = '';
+		}
+		line += chunk;
+	};
+
+	for (let i = 0; i < bytes.length; i += 1) {
+		const byte = bytes[i];
+		if (byte === 13 && bytes[i + 1] === 10) {
+			lines.push(line.replace(/[ \t]$/, (char) => `=${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`));
+			line = '';
+			i += 1;
+			continue;
+		}
+
+		if ((byte >= 33 && byte <= 60) || (byte >= 62 && byte <= 126) || byte === 9 || byte === 32) {
+			push(String.fromCharCode(byte));
+			continue;
+		}
+		push(`=${byte.toString(16).toUpperCase().padStart(2, '0')}`);
+	}
+
+	lines.push(line.replace(/[ \t]$/, (char) => `=${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`));
+	return lines.join('\r\n');
+}
+
 function buildMessage(
 	settings: SmtpSettings,
 	to: MailRecipient[],
@@ -152,7 +185,7 @@ function buildMessage(
 ) {
 	const mixedBoundary = `mixed-${crypto.randomUUID()}`;
 	const messageId = createMessageId(settings);
-	const textBody = normalizeTextBody(appendSignature(body, settings.signature));
+	const textBody = encodeQuotedPrintable(appendSignature(body, settings.signature));
 	const headers = [
 		`Date: ${formatDate(new Date())}`,
 		`Message-ID: ${messageId}`,
@@ -170,7 +203,7 @@ function buildMessage(
 			raw: `${[
 				...headers,
 				'Content-Type: text/plain; charset=UTF-8',
-				'Content-Transfer-Encoding: 8bit'
+				'Content-Transfer-Encoding: quoted-printable'
 			].join('\r\n')}\r\n\r\n${textBody}`
 		};
 	}
@@ -180,7 +213,7 @@ function buildMessage(
 	const parts = [
 		`--${mixedBoundary}`,
 		'Content-Type: text/plain; charset=UTF-8',
-		'Content-Transfer-Encoding: 8bit',
+		'Content-Transfer-Encoding: quoted-printable',
 		'',
 		textBody
 	];
