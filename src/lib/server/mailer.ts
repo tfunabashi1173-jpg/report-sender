@@ -151,6 +151,7 @@ function buildMessage(
 ) {
 	const mixedBoundary = `mixed-${crypto.randomUUID()}`;
 	const messageId = createMessageId(settings);
+	const textBody = foldBase64(bytesToBase64(new TextEncoder().encode(normalizeNewlines(appendSignature(body, settings.signature)))));
 	const headers = [
 		`Date: ${formatDate(new Date())}`,
 		`Message-ID: ${messageId}`,
@@ -159,17 +160,28 @@ function buildMessage(
 		cc.length > 0 ? `Cc: ${cc.map((recipient) => formatAddress(recipient.name, recipient.email)).join(', ')}` : null,
 		settings.reply_to ? `Reply-To: ${settings.reply_to}` : null,
 		`Subject: ${encodeHeader(subject)}`,
-		'MIME-Version: 1.0',
-		'X-Mailer: Report Sender',
-		`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`
+		'MIME-Version: 1.0'
 	].filter(Boolean);
+
+	if (attachments.length === 0) {
+		return {
+			messageId,
+			raw: `${[
+				...headers,
+				'Content-Type: text/plain; charset=UTF-8',
+				'Content-Transfer-Encoding: base64'
+			].join('\r\n')}\r\n\r\n${textBody}`
+		};
+	}
+
+	headers.push(`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`);
 
 	const parts = [
 		`--${mixedBoundary}`,
 		'Content-Type: text/plain; charset=UTF-8',
 		'Content-Transfer-Encoding: base64',
 		'',
-		foldBase64(bytesToBase64(new TextEncoder().encode(normalizeNewlines(appendSignature(body, settings.signature)))))
+		textBody
 	];
 
 	for (const attachment of attachments) {
