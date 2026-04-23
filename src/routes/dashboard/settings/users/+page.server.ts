@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { requireAdmin } from '$lib/server/guards';
+import { hashPassword } from '$lib/server/password';
 
 type UserRow = {
 	id: string;
@@ -84,6 +85,32 @@ export const actions: Actions = {
 		]);
 
 		redirect(303, '/dashboard/settings/users?status=saved');
+	},
+	resetPassword: async ({ request, locals }) => {
+		const { user } = await requireAdmin(locals);
+		const form = await request.formData();
+		const id = String(form.get('id') ?? '').trim();
+		const newPassword = String(form.get('newPassword') ?? '');
+
+		if (!id) return fail(400, { error: '再設定対象が見つかりません' });
+		if (newPassword.length < 8) {
+			return fail(400, { error: '新しいログインパスワードは8文字以上で入力してください' });
+		}
+
+		const target = await locals.db
+			.prepare('SELECT users.id AS id FROM users INNER JOIN profiles ON profiles.id = users.id WHERE users.id = ?1')
+			.bind(id)
+			.first<{ id: string }>();
+		if (!target) return fail(404, { error: 'ユーザーが見つかりません' });
+
+		const passwordHash = await hashPassword(newPassword);
+		const statements = [locals.db.prepare('UPDATE users SET password_hash = ?1 WHERE id = ?2').bind(passwordHash, id)];
+		if (id !== user.id) {
+			statements.push(locals.db.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(id));
+		}
+
+		await locals.db.batch(statements);
+		redirect(303, '/dashboard/settings/users?status=password-reset');
 	},
 	delete: async ({ request, locals }) => {
 		const { user } = await requireAdmin(locals);

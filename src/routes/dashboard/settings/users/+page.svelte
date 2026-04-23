@@ -28,9 +28,16 @@
 	{/if}
 	{#if data.status === 'saved'}
 		<p class="success">ユーザー情報を保存しました</p>
+	{:else if data.status === 'password-reset'}
+		<p class="success">ログインパスワードを再設定しました</p>
 	{:else if data.status === 'deleted'}
 		<p class="success">ユーザーを削除しました</p>
 	{/if}
+
+	<section class="notice">
+		<strong>パスワードを忘れた場合</strong>
+		<p>ログイン済み管理者が、この画面で対象ユーザーのログインパスワードを再設定します。名前だけで外部から再設定できる公開ルートは作りません。</p>
+	</section>
 
 	<section class="users">
 		{#each data.users as user}
@@ -67,6 +74,21 @@
 					<button>保存</button>
 				</form>
 				<form
+					class="reset"
+					method="POST"
+					action="?/resetPassword"
+					onsubmit={(event) => {
+						if (!confirm('このユーザーのログインパスワードを再設定します。よろしいですか？')) event.preventDefault();
+					}}
+				>
+					<input type="hidden" name="id" value={user.id} />
+					<label>
+						ログインパスワード再設定
+						<input name="newPassword" type="password" minlength="8" required placeholder="8文字以上の新しいパスワード" autocomplete="new-password" />
+					</label>
+					<button class="secondary">再設定</button>
+				</form>
+				<form
 					method="POST"
 					action="?/delete"
 					onsubmit={(event) => {
@@ -92,6 +114,9 @@
 	.invite, button { border: 0; border-radius: 16px; background: #1f2937; color: #fff; font-weight: 700; text-decoration: none; padding: 13px 16px; }
 	.users { display: grid; gap: 14px; }
 	.user-card { display: grid; gap: 14px; border-radius: 24px; background: #fff; box-shadow: 0 22px 54px rgba(16,24,40,.07); padding: 18px; }
+	.notice { display: grid; gap: 6px; margin: 0 0 18px; border-radius: 20px; background: #fff; box-shadow: 0 18px 44px rgba(16,24,40,.06); padding: 16px; }
+	.notice strong { color: #20242c; }
+	.notice p { margin: 0; color: #8b929d; font-size: 13px; line-height: 1.7; }
 	.user-head { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
 	.user-head div { display: grid; gap: 4px; }
 	.user-head strong { color: #20242c; font-size: 18px; }
@@ -101,9 +126,11 @@
 	.meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; }
 	.meta span { border-radius: 999px; background: #f6f7f9; padding: 6px 9px; }
 	.edit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 160px auto; gap: 10px; align-items: end; }
+	.reset { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
 	label { display: grid; gap: 6px; color: #3f4652; font-size: 13px; font-weight: 650; }
 	input, select { box-sizing: border-box; width: 100%; border: 1px solid #e6e9ef; border-radius: 16px; background: #fff; color: #24262b; font: inherit; padding: 12px; }
 	input:focus, select:focus { outline: 2px solid rgba(31,41,55,.12); border-color: #cfd5df; }
+	.secondary { background: #eef2f7; color: #24262b; }
 	.danger { width: 100%; background: #fff1f0; color: #b42318; }
 	.danger:disabled { opacity: .45; cursor: not-allowed; }
 	.error, .success { border-radius: 16px; padding: 12px; }
@@ -112,6 +139,6 @@
 	@media (max-width: 780px) {
 		header { display: grid; align-items: start; }
 		.invite { text-align: center; }
-		.edit { grid-template-columns: 1fr; }
+		.edit, .reset { grid-template-columns: 1fr; }
 	}
 </style>
