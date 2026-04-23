@@ -12,17 +12,12 @@
 	let password = $state('');
 	let passwordLoading = $state(false);
 	let showPasswordLogin = $state(false);
-	let showRecovery = $state(false);
 	let displayNameInputEl = $state<HTMLInputElement | null>(null);
 	let passwordInputEl = $state<HTMLInputElement | null>(null);
 
 	let setupName = $state('');
 	let setupPassword = $state('');
 	let setupLoading = $state(false);
-
-	let recoveryName = $state('');
-	let recoveryPassword = $state('');
-	let recoveryLoading = $state(false);
 
 	async function loadBootstrapStatus() {
 		try {
@@ -109,14 +104,7 @@
 
 	function openPasswordLogin() {
 		error = '';
-		showRecovery = false;
 		showPasswordLogin = true;
-	}
-
-	function openRecovery() {
-		error = '';
-		showPasswordLogin = false;
-		showRecovery = true;
 	}
 
 	function syncAutofilledValues() {
@@ -161,37 +149,6 @@
 		}
 	}
 
-	async function recoverAdmin() {
-		if (!recoveryName.trim() || !recoveryPassword) {
-			error = '管理者名と新しいパスワードを入力してください';
-			return;
-		}
-		if (recoveryPassword.length < 8) {
-			error = '新しいパスワードは8文字以上で入力してください';
-			return;
-		}
-
-		recoveryLoading = true;
-		error = '';
-		try {
-			const res = await fetch('/api/bootstrap/recover-admin', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					displayName: recoveryName,
-					password: recoveryPassword
-				})
-			});
-			const result = await res.json();
-			if (!res.ok) throw new Error(result.error ?? '管理者復旧に失敗しました');
-			window.location.assign('/dashboard');
-		} catch (e: any) {
-			error = e.message;
-		} finally {
-			recoveryLoading = false;
-		}
-	}
-
 	onMount(() => {
 		void loadBootstrapStatus();
 	});
@@ -211,7 +168,6 @@
 
 		<div class="fallback-actions">
 			<button type="button" class="link-button" onclick={openPasswordLogin}>名前とパスワードでログイン</button>
-			<button type="button" class="link-button" onclick={openRecovery}>管理者を再設定</button>
 		</div>
 
 		{#if showPasswordLogin}
@@ -249,22 +205,6 @@
 			</section>
 		{/if}
 
-		{#if showRecovery}
-			<section class="setup">
-				<h2>管理者を再設定</h2>
-				<label>
-					管理者名
-					<input type="text" bind:value={recoveryName} placeholder="管理者名" />
-				</label>
-				<label>
-					新しいパスワード
-					<input type="password" bind:value={recoveryPassword} placeholder="8文字以上" />
-				</label>
-				<button class="btn-secondary" onclick={recoverAdmin} disabled={recoveryLoading || !recoveryName.trim() || !recoveryPassword}>
-					{recoveryLoading ? '更新中...' : '管理者を再設定してログイン'}
-				</button>
-			</section>
-		{/if}
 	{:else}
 		<p class="hint">初回起動です。初期管理者を作成してください。</p>
 
