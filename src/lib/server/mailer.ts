@@ -364,7 +364,7 @@ export async function sendReportMail(
 		await client.command('DATA', [354]);
 		const message = buildMessage(messageSettings, to, cc, subject, body, attachments);
 		await client.writeData(message.raw);
-		await client.command('QUIT', [221]);
+		await client.command('QUIT', [221]).catch(() => undefined);
 		return { count: to.length + cc.length, messageId: message.messageId };
 	} finally {
 		await client.close();
