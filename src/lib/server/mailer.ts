@@ -61,11 +61,8 @@ function formatDate(date: Date) {
 	const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 	const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 	const pad = (value: number) => String(value).padStart(2, '0');
-	const offsetMinutes = -date.getTimezoneOffset();
-	const sign = offsetMinutes >= 0 ? '+' : '-';
-	const absOffset = Math.abs(offsetMinutes);
-	const zone = `${sign}${pad(Math.floor(absOffset / 60))}${pad(absOffset % 60)}`;
-	return `${weekdays[date.getDay()]}, ${pad(date.getDate())} ${months[date.getMonth()]} ${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${zone}`;
+	const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+	return `${weekdays[jst.getUTCDay()]}, ${pad(jst.getUTCDate())} ${months[jst.getUTCMonth()]} ${jst.getUTCFullYear()} ${pad(jst.getUTCHours())}:${pad(jst.getUTCMinutes())}:${pad(jst.getUTCSeconds())} +0900`;
 }
 
 function createMessageId(settings: SmtpSettings) {
@@ -82,6 +79,10 @@ function formatMimeParameter(name: string, value: string) {
 
 function normalizeNewlines(value: string) {
 	return value.replace(/\r?\n/g, '\r\n');
+}
+
+function normalizeTextBody(value: string) {
+	return normalizeNewlines(value).replace(/\r\n$/, '');
 }
 
 function replaceSignatureTags(signature: string, loginName: string, company: string) {
@@ -151,7 +152,7 @@ function buildMessage(
 ) {
 	const mixedBoundary = `mixed-${crypto.randomUUID()}`;
 	const messageId = createMessageId(settings);
-	const textBody = foldBase64(bytesToBase64(new TextEncoder().encode(normalizeNewlines(appendSignature(body, settings.signature)))));
+	const textBody = normalizeTextBody(appendSignature(body, settings.signature));
 	const headers = [
 		`Date: ${formatDate(new Date())}`,
 		`Message-ID: ${messageId}`,
@@ -169,7 +170,7 @@ function buildMessage(
 			raw: `${[
 				...headers,
 				'Content-Type: text/plain; charset=UTF-8',
-				'Content-Transfer-Encoding: base64'
+				'Content-Transfer-Encoding: 8bit'
 			].join('\r\n')}\r\n\r\n${textBody}`
 		};
 	}
@@ -179,7 +180,7 @@ function buildMessage(
 	const parts = [
 		`--${mixedBoundary}`,
 		'Content-Type: text/plain; charset=UTF-8',
-		'Content-Transfer-Encoding: base64',
+		'Content-Transfer-Encoding: 8bit',
 		'',
 		textBody
 	];
