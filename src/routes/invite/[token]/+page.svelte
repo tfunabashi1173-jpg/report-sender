@@ -5,13 +5,14 @@
 	let { data } = $props();
 
 	let displayName = $state(data.inviteData?.displayName ?? '');
+	let organization = $state('');
 	let password = $state('');
 	let loading = $state(false);
 	let error = $state(data.error ?? '');
 
 	async function register() {
-		if (!displayName.trim() || !password) {
-			error = '名前・ログインパスワードは必須です';
+		if (!displayName.trim() || !organization.trim() || !password) {
+			error = '名前・所属・ログインパスワードは必須です';
 			return;
 		}
 		if (password.length < 8) {
@@ -27,6 +28,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					displayName,
+					organization,
 					password
 				})
 			});
@@ -88,11 +90,16 @@
 		</label>
 
 		<label>
+			所属
+			<input type="text" bind:value={organization} placeholder="株式会社サンプル" />
+		</label>
+
+		<label>
 			ログインパスワード
 			<input type="password" bind:value={password} placeholder="8文字以上" />
 		</label>
 
-		<button class="btn-primary" onclick={register} disabled={loading || !displayName.trim() || !password}>
+		<button class="btn-primary" onclick={register} disabled={loading || !displayName.trim() || !organization.trim() || !password}>
 			{loading ? '登録中...' : '登録してパスキーを作成'}
 		</button>
 	{/if}

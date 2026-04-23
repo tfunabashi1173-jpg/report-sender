@@ -14,6 +14,7 @@
 	let showPasswordLogin = $state(false);
 	let showPasswordReset = $state(false);
 	let resetName = $state('');
+	let resetOrganization = $state('');
 	let resetEmail = $state('');
 	let resetLoading = $state(false);
 	let info = $state('');
@@ -21,6 +22,7 @@
 	let passwordInputEl = $state<HTMLInputElement | null>(null);
 
 	let setupName = $state('');
+	let setupOrganization = $state('');
 	let setupPassword = $state('');
 	let setupLoading = $state(false);
 
@@ -131,8 +133,8 @@
 	}
 
 	async function createFirstAdmin() {
-		if (!setupName.trim() || !setupPassword) {
-			error = '管理者名とログインパスワードは必須です';
+		if (!setupName.trim() || !setupOrganization.trim() || !setupPassword) {
+			error = '管理者名・所属・ログインパスワードは必須です';
 			return;
 		}
 		if (setupPassword.length < 8) {
@@ -148,6 +150,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					displayName: setupName,
+					organization: setupOrganization,
 					password: setupPassword
 				})
 			});
@@ -164,8 +167,8 @@
 	}
 
 	async function requestPasswordReset() {
-		if (!resetName.trim() || !resetEmail.trim()) {
-			error = '名前とメールアドレスを入力してください';
+		if (!resetName.trim() || !resetOrganization.trim() || !resetEmail.trim()) {
+			error = '名前・所属・メールアドレスを入力してください';
 			return;
 		}
 
@@ -176,7 +179,7 @@
 			const res = await fetch('/api/auth/password/reset-request', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ displayName: resetName, email: resetEmail })
+				body: JSON.stringify({ displayName: resetName, organization: resetOrganization, email: resetEmail })
 			});
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error ?? 'パスワード再設定メールを送信できませんでした');
@@ -255,17 +258,21 @@
 		{#if showPasswordReset}
 			<section class="setup">
 				<h2>パスワード再設定メール</h2>
-				<p class="hint">登録ユーザー名と、連絡先に登録済みの同じ名前のメールアドレスが完全一致した場合のみ送信します。</p>
+				<p class="hint">登録ユーザー名・所属と、連絡先に登録済みの同じ名前・所属・メールアドレスが完全一致した場合のみ送信します。</p>
 				<form class="password-form" onsubmit={(e) => { e.preventDefault(); void requestPasswordReset(); }}>
 					<label>
 						名前
 						<input type="text" bind:value={resetName} placeholder="山田 太郎" autocomplete="username" />
 					</label>
 					<label>
+						所属
+						<input type="text" bind:value={resetOrganization} placeholder="株式会社サンプル" autocomplete="organization" />
+					</label>
+					<label>
 						メールアドレス
 						<input type="email" bind:value={resetEmail} placeholder="name@example.co.jp" autocomplete="email" />
 					</label>
-					<button type="submit" class="btn-secondary" disabled={resetLoading || !resetName.trim() || !resetEmail.trim()}>
+					<button type="submit" class="btn-secondary" disabled={resetLoading || !resetName.trim() || !resetOrganization.trim() || !resetEmail.trim()}>
 						{resetLoading ? '送信中...' : '再設定URLを送信'}
 					</button>
 				</form>
@@ -284,6 +291,22 @@
 					name="initial-admin-display-label"
 					bind:value={setupName}
 					placeholder="管理者"
+					autocomplete="off"
+					autocapitalize="none"
+					autocorrect="off"
+					spellcheck="false"
+					data-1p-ignore
+					data-lpignore="true"
+					data-form-type="other"
+				/>
+			</label>
+			<label>
+				所属
+				<input
+					type="text"
+					name="initial-admin-organization"
+					bind:value={setupOrganization}
+					placeholder="株式会社サンプル"
 					autocomplete="off"
 					autocapitalize="none"
 					autocorrect="off"
@@ -313,7 +336,7 @@
 			<button
 				class="btn-secondary"
 				onclick={createFirstAdmin}
-				disabled={setupLoading || !setupName.trim() || !setupPassword}
+				disabled={setupLoading || !setupName.trim() || !setupOrganization.trim() || !setupPassword}
 			>
 				{setupLoading ? '作成中...' : '初期管理者を作成してログイン'}
 			</button>

@@ -9,26 +9,34 @@ const GENERIC_RESPONSE = {
 };
 
 export const POST: RequestHandler = async ({ request, locals, url }) => {
-	const { displayName, email } = await request.json();
+	const { displayName, organization, email } = await request.json();
 	if (typeof displayName !== 'string' || displayName.trim().length === 0) {
 		return json({ error: '名前は必須です' }, { status: 400 });
+	}
+	if (typeof organization !== 'string' || organization.trim().length === 0) {
+		return json({ error: '所属は必須です' }, { status: 400 });
 	}
 	if (typeof email !== 'string' || email.trim().length === 0 || !email.includes('@')) {
 		return json({ error: 'メールアドレスを入力してください' }, { status: 400 });
 	}
 
 	const normalizedName = displayName.trim();
+	const normalizedOrganization = organization.trim();
 	const normalizedEmail = email.trim();
 	const matched = await locals.db
 		.prepare(
 			`SELECT users.id AS userId, profiles.display_name AS displayName, contacts.email AS email
 			 FROM users
 			 INNER JOIN profiles ON profiles.id = users.id
-			 INNER JOIN contacts ON contacts.name = profiles.display_name AND contacts.email = ?2
+			 INNER JOIN contacts
+			    ON contacts.name = profiles.display_name
+			   AND contacts.email = ?3
+			   AND contacts.organization = profiles.organization
 			 WHERE profiles.display_name = ?1
+			   AND profiles.organization = ?2
 			 LIMIT 1`
 		)
-		.bind(normalizedName, normalizedEmail)
+		.bind(normalizedName, normalizedOrganization, normalizedEmail)
 		.first<{ userId: string; displayName: string; email: string }>();
 
 	if (!matched) return json(GENERIC_RESPONSE);

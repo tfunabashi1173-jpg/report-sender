@@ -25,7 +25,7 @@
 			</label>
 			<label>
 				所属・会社名
-				<input name="organization" value={data.profile?.organization ?? data.user.organization ?? ''} placeholder="株式会社サンプル" />
+				<input name="organization" required value={data.profile?.organization ?? data.user.organization ?? ''} placeholder="株式会社サンプル" />
 			</label>
 			<div class="tag-help">
 				<span>{'{loginName}'}: ログインユーザー名</span>

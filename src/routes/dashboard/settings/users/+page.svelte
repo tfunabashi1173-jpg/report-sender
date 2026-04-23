@@ -62,7 +62,7 @@
 					</label>
 					<label>
 						所属・会社名
-						<input name="organization" value={user.organization ?? ''} placeholder="所属なし" />
+						<input name="organization" required value={user.organization ?? ''} placeholder="株式会社サンプル" />
 					</label>
 					<label>
 						権限

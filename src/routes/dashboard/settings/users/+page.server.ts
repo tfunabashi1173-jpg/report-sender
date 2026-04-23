@@ -63,6 +63,7 @@ export const actions: Actions = {
 
 		if (!id) return fail(400, { error: '更新対象が見つかりません' });
 		if (!displayName) return fail(400, { error: 'ユーザー名は必須です' });
+		if (!organization) return fail(400, { error: '所属は必須です' });
 
 		const target = await locals.db.prepare('SELECT role FROM profiles WHERE id = ?1').bind(id).first<{ role: 'admin' | 'member' }>();
 		if (!target) return fail(404, { error: 'ユーザーが見つかりません' });
@@ -80,7 +81,7 @@ export const actions: Actions = {
 		await locals.db.batch([
 			locals.db
 				.prepare('UPDATE profiles SET display_name = ?1, organization = ?2, role = ?3 WHERE id = ?4')
-				.bind(displayName, organization || null, role, id),
+				.bind(displayName, organization, role, id),
 			locals.db.prepare('UPDATE users SET login_id = ?1 WHERE id = ?2').bind(displayName, id)
 		]);
 

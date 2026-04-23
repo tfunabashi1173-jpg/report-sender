@@ -4,10 +4,13 @@ import { createSession, isSecureRequest, setSessionCookie } from '$lib/server/au
 import { hashPassword } from '$lib/server/password';
 
 export const POST: RequestHandler = async ({ request, locals, cookies, url }) => {
-	const { displayName, password } = await request.json();
+	const { displayName, organization, password } = await request.json();
 
 	if (typeof displayName !== 'string' || displayName.trim().length === 0) {
 		return json({ error: '管理者名は必須です' }, { status: 400 });
+	}
+	if (typeof organization !== 'string' || organization.trim().length === 0) {
+		return json({ error: '所属は必須です' }, { status: 400 });
 	}
 	if (typeof password !== 'string' || password.length < 8) {
 		return json({ error: 'ログインパスワードは8文字以上で入力してください' }, { status: 400 });
@@ -26,6 +29,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 	const now = new Date().toISOString();
 	const email = `admin-${crypto.randomUUID()}@report-sender.local`;
 	const normalizedName = displayName.trim();
+	const normalizedOrganization = organization.trim();
 	const passwordHash = await hashPassword(password);
 
 	const exists = (await locals.db
@@ -41,8 +45,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 			.prepare('INSERT INTO users (id, email, phone, login_id, password_hash, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
 			.bind(userId, email, null, normalizedName, passwordHash, now),
 		locals.db
-			.prepare('INSERT INTO profiles (id, display_name, role, created_at) VALUES (?1, ?2, ?3, ?4)')
-			.bind(userId, normalizedName, 'admin', now)
+			.prepare('INSERT INTO profiles (id, display_name, role, organization, created_at) VALUES (?1, ?2, ?3, ?4, ?5)')
+			.bind(userId, normalizedName, 'admin', normalizedOrganization, now)
 	]);
 
 	const { sessionId, expiresAt } = await createSession(locals.db, userId);
