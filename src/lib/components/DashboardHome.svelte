@@ -83,6 +83,7 @@
 					<a href="/dashboard/settings/profile">ユーザー設定</a>
 					<a href="/dashboard/settings/stamp">画像文字入れ設定</a>
 					{#if isAdmin}
+						<a href="/dashboard/users">ユーザー管理</a>
 						<a href="/dashboard/settings/mail">メール設定</a>
 					{/if}
 					<button onclick={logout}>ログアウト</button>
@@ -107,6 +108,13 @@
 				<small>{item.description}</small>
 			</a>
 		{/each}
+		{#if isAdmin}
+			<a class="menu-card" href="/dashboard/users">
+				<span class="icon">{@render Icon('contacts')}</span>
+				<strong>ユーザー管理</strong>
+				<small>登録ユーザーと権限</small>
+			</a>
+		{/if}
 	</section>
 
 	<section class="panel">
