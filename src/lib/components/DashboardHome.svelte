@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import appIcon from '$lib/assets/favicon.svg';
 
 	let { data } = $props();
 
@@ -67,7 +68,10 @@
 
 <main class="dashboard">
 	<header class="topbar">
-		<a class="brand" href="/">REPORT SENDER</a>
+		<a class="brand" href="/">
+			<img src={appIcon} alt="" />
+			<span>REPORT SENDER</span>
+		</a>
 		<div class="top-actions">
 			<a class="primary" href="/dashboard/compose"><span>+</span> 作成</a>
 			<a class="gear" href="/dashboard/settings" aria-label="設定">
@@ -149,11 +153,20 @@
 		padding: 4px 2px 22px;
 	}
 	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
 		color: #9aa0aa;
 		font-size: 12px;
 		font-weight: 700;
 		letter-spacing: 0.18em;
 		text-decoration: none;
+	}
+	.brand img {
+		width: 30px;
+		height: 30px;
+		border-radius: 10px;
+		box-shadow: 0 10px 22px rgba(37, 48, 65, 0.12);
 	}
 	.top-actions {
 		display: flex;

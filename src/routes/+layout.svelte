@@ -19,6 +19,9 @@
 <svelte:head>
 	<title>報告メール送信システム</title>
 	<link rel="icon" href={favicon} />
+	<link rel="apple-touch-icon" href="/app-icon.svg" />
+	<link rel="manifest" href="/site.webmanifest" />
+	<meta name="theme-color" content="#253041" />
 </svelte:head>
 
 <svelte:document onsubmit={handleSubmit} />
