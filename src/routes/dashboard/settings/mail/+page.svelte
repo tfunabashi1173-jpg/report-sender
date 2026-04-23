@@ -12,7 +12,7 @@
 </script>
 
 <main class="page">
-	<a class="back" href="/dashboard">ダッシュボードへ</a>
+	<a class="back" href="/dashboard/settings">設定へ</a>
 	<header>
 		<p class="eyebrow">SMTP</p>
 		<h1>送信メールサーバー設定</h1>

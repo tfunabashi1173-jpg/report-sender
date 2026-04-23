@@ -10,7 +10,7 @@
 </script>
 
 <main class="page">
-	<a class="back" href="/dashboard">ダッシュボードへ</a>
+	<a class="back" href="/dashboard/settings">設定へ</a>
 	<header>
 		<p class="eyebrow">Image Stamp</p>
 		<h1>画像文字入れ設定</h1>

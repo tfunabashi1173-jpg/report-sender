@@ -3,7 +3,7 @@
 </script>
 
 <main class="page">
-	<a class="back" href="/dashboard">ダッシュボードへ</a>
+	<a class="back" href="/dashboard/settings">設定へ</a>
 	<header>
 		<p class="eyebrow">Profile</p>
 		<h1>ユーザー設定</h1>

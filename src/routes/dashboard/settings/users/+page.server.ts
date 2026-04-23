@@ -83,7 +83,7 @@ export const actions: Actions = {
 			locals.db.prepare('UPDATE users SET login_id = ?1 WHERE id = ?2').bind(displayName, id)
 		]);
 
-		redirect(303, '/dashboard/users?status=saved');
+		redirect(303, '/dashboard/settings/users?status=saved');
 	},
 	delete: async ({ request, locals }) => {
 		const { user } = await requireAdmin(locals);
@@ -115,6 +115,6 @@ export const actions: Actions = {
 			locals.db.prepare('DELETE FROM users WHERE id = ?1').bind(id)
 		]);
 
-		redirect(303, '/dashboard/users?status=deleted');
+		redirect(303, '/dashboard/settings/users?status=deleted');
 	}
 };

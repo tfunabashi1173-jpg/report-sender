@@ -5,7 +5,6 @@
 
 	const displayName = $derived(data.user?.displayName ?? data.profile?.displayName ?? 'User');
 	const initial = $derived(displayName.slice(0, 1).toUpperCase());
-	const isAdmin = $derived(data.profile?.role === 'admin');
 
 	async function logout() {
 		await fetch('/api/auth/logout', { method: 'POST' });
@@ -71,21 +70,14 @@
 		<a class="brand" href="/">REPORT SENDER</a>
 		<div class="top-actions">
 			<a class="primary" href="/dashboard/compose"><span>+</span> 作成</a>
-			{#if isAdmin}
-				<a class="gear" href="/dashboard/settings/mail" aria-label="メール設定">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.39 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1A1.7 1.7 0 0 0 2.9 13H3a2 2 0 1 1 0-4h-.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 10.4 2.9V3a2 2 0 1 1 4 0v-.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.26.37.62.67 1 .8.23.08.47.1.7.1H21a2 2 0 1 1 0 4h.09A1.7 1.7 0 0 0 19.4 15Z" /></svg>
-				</a>
-			{/if}
+			<a class="gear" href="/dashboard/settings" aria-label="設定">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.39 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1A1.7 1.7 0 0 0 2.9 13H3a2 2 0 1 1 0-4h-.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 10.4 2.9V3a2 2 0 1 1 4 0v-.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.26.37.62.67 1 .8.23.08.47.1.7.1H21a2 2 0 1 1 0 4h.09A1.7 1.7 0 0 0 19.4 15Z" /></svg>
+			</a>
 			<div class="account">
 				<button class="avatar" aria-label="アカウント">{initial}</button>
 				<div class="account-menu">
 					<span>{displayName}</span>
-					<a href="/dashboard/settings/profile">ユーザー設定</a>
-					<a href="/dashboard/settings/stamp">画像文字入れ設定</a>
-					{#if isAdmin}
-						<a href="/dashboard/users">ユーザー管理</a>
-						<a href="/dashboard/settings/mail">メール設定</a>
-					{/if}
+					<a href="/dashboard/settings">設定</a>
 					<button onclick={logout}>ログアウト</button>
 				</div>
 			</div>
@@ -108,13 +100,6 @@
 				<small>{item.description}</small>
 			</a>
 		{/each}
-		{#if isAdmin}
-			<a class="menu-card" href="/dashboard/users">
-				<span class="icon">{@render Icon('contacts')}</span>
-				<strong>ユーザー管理</strong>
-				<small>登録ユーザーと権限</small>
-			</a>
-		{/if}
 	</section>
 
 	<section class="panel">
