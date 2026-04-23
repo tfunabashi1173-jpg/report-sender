@@ -83,10 +83,10 @@ export const actions: Actions = {
 		await requireAdmin(locals);
 		try {
 			await testSmtpConnection(locals.db);
-			redirect(303, '/dashboard/settings/mail?status=connected');
 		} catch (e: any) {
 			return fail(400, { error: e?.message ?? 'SMTP接続テストに失敗しました' });
 		}
+		redirect(303, '/dashboard/settings/mail?status=connected');
 	},
 	sendTest: async ({ request, locals }) => {
 		const { user } = await requireAdmin(locals);
@@ -97,9 +97,9 @@ export const actions: Actions = {
 		}
 		try {
 			await sendTestMail(locals.db, testEmail, user.id);
-			redirect(303, '/dashboard/settings/mail?status=test-sent');
 		} catch (e: any) {
 			return fail(400, { error: e?.message ?? 'テストメール送信に失敗しました' });
 		}
+		redirect(303, '/dashboard/settings/mail?status=test-sent');
 	}
 };
