@@ -88,13 +88,16 @@
 
 	function applyTemplate() {
 		const template = data.templates.find((item) => item.id === selectedTemplateId);
-		if (!template) return;
+		if (!template) {
+			appliedTemplateId = '';
+			subject = '';
+			body = '';
+			return;
+		}
 		appliedTemplateId = template.id;
 		subject = applyTags(template.subject);
 		body = applyTags(template.body);
 		selectedMailingListId = template.toListIds[0] ?? template.ccListIds[0] ?? '';
-		selectedToContactIds = [];
-		selectedCcContactIds = [];
 	}
 
 	$effect(() => {
