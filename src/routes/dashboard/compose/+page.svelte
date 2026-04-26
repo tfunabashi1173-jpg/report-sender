@@ -773,6 +773,12 @@
 	@media (max-width: 620px) {
 		.template-row, .actions, .confirm-grid, .modal-actions { grid-template-columns: 1fr; }
 	}
+	@media (min-width: 621px) and (max-width: 1023px) {
+		.actions {
+			max-width: 520px;
+			margin: 0 auto;
+		}
+	}
 	@media (min-width: 1024px) {
 		.composer {
 			grid-template-columns: minmax(0, 1fr) 360px;
@@ -790,11 +796,9 @@
 			overflow: auto;
 		}
 		.actions {
-			grid-column: 1 / -1;
+			grid-column: 1;
 			position: static;
-			grid-template-columns: 220px 1fr;
-			justify-self: end;
-			width: min(100%, 520px);
+			grid-template-columns: 1fr 1fr;
 		}
 	}
 
