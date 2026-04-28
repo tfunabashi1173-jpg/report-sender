@@ -646,7 +646,8 @@
 	.working { color: #93621f; }
 	.actions {
 		position: sticky;
-		bottom: 12px;
+		bottom: calc(env(safe-area-inset-bottom) + 72px);
+		z-index: 25;
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 10px;
@@ -785,6 +786,7 @@
 		.actions {
 			position: static;
 			max-width: 480px;
+			margin-bottom: 100px;
 		}
 	}
 	@media (min-width: 1024px) {
