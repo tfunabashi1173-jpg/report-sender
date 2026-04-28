@@ -22,6 +22,7 @@
 	let compressingAttachments = $state(false);
 	let confirmOpen = $state(false);
 	let confirmedSend = $state(false);
+	let noAttachmentWarning = $state(false);
 	let previewImages = $state<PreviewImage[]>([]);
 
 	const floors = Array.from({ length: 60 }, (_, index) => `${index + 1}階`);
@@ -188,11 +189,13 @@
 			return;
 		}
 		refreshPreviewImages();
+		noAttachmentWarning = previewImages.length === 0;
 		confirmOpen = true;
 	}
 
 	function closeSendConfirm() {
 		confirmOpen = false;
+		noAttachmentWarning = false;
 	}
 
 	function cancelSendConfirm() {
@@ -495,7 +498,7 @@
 					<section class="wide">
 						<h3>画像</h3>
 						{#if previewImages.length === 0}
-							<p class="empty">添付画像なし</p>
+							<p class="no-attach-warn">⚠️ 添付画像がありません。画像なしで送信しますか？</p>
 						{:else}
 							<div class="thumbs">
 								{#each previewImages as image}
@@ -509,7 +512,9 @@
 					</section>
 				</div>
 				<div class="modal-actions">
-					<button type="button" class="secondary" onclick={confirmSend}>送信</button>
+					<button type="button" class={noAttachmentWarning ? 'warn' : 'secondary'} onclick={confirmSend}>
+						{noAttachmentWarning ? '画像なしで送信' : '送信'}
+					</button>
 					<button type="button" class="subtle" onclick={closeSendConfirm}>戻る</button>
 					<button type="button" class="danger" onclick={cancelSendConfirm}>中止</button>
 				</div>
@@ -769,6 +774,9 @@
 	.primary:hover, .sub-button:hover { background: #dd7b1b; color: #1c1207; }
 	.secondary { background: #17211b; color: white; }
 	.secondary:hover { background: #24352c; color: white; }
+	.warn { background: #f08a24; color: #1c1207; }
+	.warn:hover { background: #dd7b1b; color: #1c1207; }
+	.no-attach-warn { margin: 0; padding: 10px 12px; border-radius: 12px; background: #fff3e0; color: #a05a00; font-size: 13px; font-weight: 600; }
 	.error { border-radius: 14px; padding: 12px; background: #ffe8e4; color: #a53024; }
 	@media (max-width: 620px) {
 		.template-row, .actions, .confirm-grid, .modal-actions { grid-template-columns: 1fr; }
