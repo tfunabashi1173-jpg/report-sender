@@ -781,10 +781,10 @@
 	@media (max-width: 620px) {
 		.template-row, .actions, .confirm-grid, .modal-actions { grid-template-columns: 1fr; }
 	}
-	@media (min-width: 621px) and (max-width: 1023px) {
+	@media (min-width: 621px) {
 		.actions {
-			max-width: 520px;
-			margin: 0 auto;
+			position: static;
+			max-width: 480px;
 		}
 	}
 	@media (min-width: 1024px) {
@@ -805,13 +805,12 @@
 		}
 		.actions {
 			grid-column: 1;
-			position: static;
-			grid-template-columns: 1fr 1fr;
 		}
 	}
 
 	:global(body) { background: #f6f7f9; color: #24262b; }
-	.page { max-width: 1120px; padding: 24px 18px 112px; }
+	.page { max-width: 1120px; padding: 24px 18px 48px; }
+	@media (max-width: 620px) { .page { padding-bottom: 112px; } }
 	.back, .mini { color: #6b7280; font-size: 13px; font-weight: 650; text-decoration: none; }
 	header { margin: 20px 0 22px; }
 	.eyebrow { color: #9aa0aa; font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
